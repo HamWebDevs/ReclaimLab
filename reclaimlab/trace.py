@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import os
+import re
 from pathlib import Path
 
 MAX_BYTES = 128 * 1024 * 1024
@@ -22,6 +23,13 @@ def signature(header):
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()[:20]
 
 
+def validate_study_stamp(stamp):
+    if not isinstance(stamp, dict) or set(stamp) != {"protocol", "pair", "condition"} or not isinstance(stamp.get("protocol"), str) or not re.fullmatch(r"[0-9a-f]{64}", stamp["protocol"]):
+        raise ValueError("Invalid study protocol stamp")
+    if not isinstance(stamp.get("pair"), str) or not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", stamp["pair"]) or not isinstance(stamp.get("condition"), str) or stamp["condition"] not in {"baseline", "candidate"}:
+        raise ValueError("Invalid study pair/condition stamp")
+
+
 def exclusive(path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -35,6 +43,8 @@ def write_row(stream, row):
 
 def load(path):
     path = Path(path)
+    if not path.is_file():
+        raise ValueError("Trace must be a regular file")
     if path.stat().st_size > MAX_BYTES:
         raise ValueError("Trace exceeds 128 MiB; select a shorter recording")
     header, footer = None, None
@@ -58,6 +68,14 @@ def load(path):
                     raise ValueError("First record must be a schema 1 header")
                 if not isinstance(row.get("hardware"), dict) or not isinstance(row.get("platform"), str) or not number(row.get("interval_s"), .2, 10):
                     raise ValueError("Invalid trace header")
+                if not isinstance(row.get("backend"), str) or not 1 <= len(row["backend"]) <= 128:
+                    raise ValueError("Invalid collector backend")
+                for field in ("machine", "cpu_model", "scope_warning"):
+                    value = row["hardware"].get(field)
+                    if value is not None and (not isinstance(value, str) or len(value) > 1000):
+                        raise ValueError("Invalid hardware description")
+                if "study" in row:
+                    validate_study_stamp(row["study"])
                 if not number(row.get("heartbeat_s"), .01, 1):
                     raise ValueError("Invalid heartbeat interval")
                 if not isinstance(row.get("workload", ""), str) or len(row.get("workload", "")) > 200:

@@ -25,18 +25,26 @@ jobs:
         if: runner.os != 'macOS'
       - run: reclaimlab demo --output reclaimlab-demo.html
         working-directory: ${{ runner.temp }}
+      - run: reclaimlab study-demo --directory synthetic-study --output reclaimlab-study.html
+        working-directory: ${{ runner.temp }}
       - uses: actions/upload-artifact@v4
         with:
           name: demo-${{ runner.os }}-${{ matrix.python }}
-          path: ${{ runner.temp }}/reclaimlab-demo.html
+          path: |
+            ${{ runner.temp }}/reclaimlab-demo.html
+            ${{ runner.temp }}/reclaimlab-study.html
   devpocket-integration:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
           repository: HamWebDevs/DevPocket
-          ref: 9c156e87a0871aeefaaf014c73a19bce7b98f48a
+          ref: 40534a3ec02838c21ffb350c070392d06a6a5dbc
           path: .integration-host
       - uses: actions/setup-python@v5
         with:

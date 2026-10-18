@@ -10,7 +10,8 @@ from .demo import synthetic
 from .experiment import compare
 from .native import collector
 from .record import record
-from .report import create
+from .report import create, create_study
+from . import study
 from .trace import exclusive, load, write_row
 
 def parser():
@@ -44,6 +45,29 @@ def parser():
     r = sub.add_parser('demo', help='Create a clearly labelled synthetic demo')
     r.add_argument('--output', required=True)
     r.add_argument('--trace-output')
+    r = sub.add_parser('plan', help='Create a balanced, reproducible crossover study protocol')
+    r.add_argument('--title', default='Repeated laptop experiment')
+    r.add_argument('--workload', required=True)
+    r.add_argument('--baseline', default='Original setup')
+    r.add_argument('--candidate', default='One deliberate change')
+    r.add_argument('--pairs', type=int, default=6)
+    r.add_argument('--seconds', type=float, default=60)
+    r.add_argument('--interval', type=float, default=.5)
+    r.add_argument('--seed', type=int, default=0)
+    r.add_argument('--output', required=True)
+    r = sub.add_parser('next', help='Show the next condition, or explicitly record its planned capture')
+    r.add_argument('manifest')
+    r.add_argument('--record', action='store_true', help='Record after you have applied the displayed/planned condition yourself')
+    r.add_argument('--json', action='store_true')
+    r = sub.add_parser('study', help='Audit repeated runs and bootstrap whole paired runs')
+    r.add_argument('manifest')
+    r.add_argument('--iterations', type=int, default=2000)
+    r.add_argument('--seed', type=int, default=0)
+    r.add_argument('--output', help='Optional fresh offline HTML study report')
+    r.add_argument('--json', action='store_true')
+    r = sub.add_parser('study-demo', help='Write synthetic study traces and an offline report')
+    r.add_argument('--directory', required=True, help='Fresh directory for the synthetic protocol and captures')
+    r.add_argument('--output', required=True)
     sub.add_parser('doctor', help='Show native capture capabilities')
     return p
 
@@ -70,6 +94,52 @@ def main(argv=None):
                     for row in [trace['header'], *trace['samples'], *trace['markers'], trace['footer']]:
                         write_row(stream, row)
             print(f'Synthetic demo saved: {args.output}')
+            return 0
+        if args.action == 'plan':
+            manifest = study.plan(args.title, args.workload, args.baseline, args.candidate, args.pairs, args.seconds, args.interval, args.seed)
+            study.save(manifest, args.output)
+            print(f'Saved {args.pairs} paired runs ({args.pairs * 2} captures): {args.output}')
+            print('Use reclaimlab next with this manifest to inspect the next condition. Apply it yourself before using --record.')
+            return 0
+        if args.action == 'next':
+            slot = study.next_capture(args.manifest)
+            if slot is None:
+                print(json.dumps({'complete': True}) if args.json else 'All planned capture files exist. Run reclaimlab study to audit compatibility.')
+                return 0
+            capture = slot['manifest']['capture']
+            result = {key: slot[key] for key in ('pair', 'condition', 'path', 'description')}
+            result.update(capture, complete=False, protocol=slot['stamp']['protocol'])
+            if not args.json:
+                print(f"Next: {slot['pair']} / {slot['condition']} — {slot['description']}")
+            if args.record:
+                recorded = record(slot['target'], seconds=capture['seconds'], interval=capture['interval'], label=slot['pair'] + ' / ' + slot['condition'], workload=slot['manifest']['workload'], study_stamp=slot['stamp'])
+                result['recording'] = recorded
+                if args.json:
+                    print(json.dumps(result, allow_nan=False))
+                else:
+                    print(f"Saved planned capture: {slot['path']}")
+                return 130 if recorded['interrupted'] else 0
+            print(json.dumps(result, indent=2) if args.json else 'Apply this condition yourself, reproduce the same task, then run this command with --record. No settings are changed automatically.')
+            return 0
+        if args.action == 'study-demo':
+            from .demo import write_study
+            manifest_path = write_study(args.directory)
+            create_study(study.evaluate(manifest_path), args.output)
+            print(f'Synthetic study report saved: {args.output}')
+            return 0
+        if args.action == 'study':
+            result = study.evaluate(args.manifest, args.iterations, args.seed)
+            if args.output:
+                create_study(result, args.output)
+            if args.json:
+                print(json.dumps(result, indent=2, allow_nan=False))
+            else:
+                print(result['verdict'])
+                print(f"Compatible pairs: {result['valid_pairs']}/{result['planned_pairs']}; mean p95 change: {result['mean_delta_ms']} ms")
+                print(f"Descriptive paired-bootstrap interval: {result['bootstrap_interval95_ms']}")
+                for reason in result['incompatible'] + result['context']:
+                    print('- ' + reason)
+                print(result['interpretation'])
             return 0
         trace = load(args.trace if args.action in {'analyze', 'report'} else args.before)
         if args.action == 'analyze':

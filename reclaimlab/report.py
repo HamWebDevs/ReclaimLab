@@ -22,11 +22,19 @@ def timeline(samples, buckets=250):
     return [{'t': samples[i]['t'], 'cpu': samples[i]['metrics'].get('cpu_pct'), 'memory': samples[i]['metrics'].get('memory_available_pct'), 'disk': samples[i]['metrics'].get('disk_busy_pct'), 'lag': max(samples[i]['wake_lag_ms']) if samples[i]['wake_lag_ms'] else None} for i in sorted(chosen)]
 
 
-def create(trace, output, analysis=None, comparison=None):
-    data = {'header': trace['header'], 'analysis': analysis or analyse(trace), 'comparison': comparison, 'timeline': timeline(trace['samples']), 'markers': trace['markers'][:1000], 'original_records': len(trace['samples'])}
+def write_document(data, title, output, template_name):
     serialized = json.dumps(data, ensure_ascii=True, allow_nan=False).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
-    template = Path(__file__).with_name('report_template.html').read_text(encoding='utf-8')
-    document = re.sub(r'__(DATA|TITLE)__', lambda match: serialized if match[1] == 'DATA' else html.escape(trace['header']['label'], quote=True), template)
+    template = Path(__file__).with_name(template_name).read_text(encoding='utf-8')
+    document = re.sub(r'__(DATA|TITLE)__', lambda match: serialized if match[1] == 'DATA' else html.escape(title, quote=True), template)
     with exclusive(output) as stream:
         stream.write(document)
     return output
+
+
+def create(trace, output, analysis=None, comparison=None):
+    data = {'header': trace['header'], 'analysis': analysis or analyse(trace), 'comparison': comparison, 'timeline': timeline(trace['samples']), 'markers': trace['markers'][:1000], 'original_records': len(trace['samples'])}
+    return write_document(data, trace['header']['label'], output, 'report_template.html')
+
+
+def create_study(result, output):
+    return write_document(result, result['title'], output, 'study_template.html')

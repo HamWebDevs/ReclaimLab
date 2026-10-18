@@ -11,7 +11,7 @@ Record a slowdown while doing your normal work. See scheduling delays alongside 
 
 No account, background service, automatic tuning, telemetry or runtime dependencies. Capture supports **Windows and Linux**; analysis and reports also work on macOS.
 
-[Quick start](#quick-start) · [How it works](docs/methodology.md) · [Commands](docs/commands.md) · [Counter coverage](docs/counters.md) · [DevPocket integration](docs/devpocket.md)
+[Quick start](#quick-start) · [Repeated studies](docs/studies.md) · [How it works](docs/methodology.md) · [Commands](docs/commands.md) · [Counter coverage](docs/counters.md) · [DevPocket integration](docs/devpocket.md)
 
 ## Quick start
 
@@ -47,6 +47,27 @@ The comparison checks coarse hardware/platform compatibility, sampling rate, dur
 
 A lower measured delay does not establish that your attempted change caused it. Repeat captures, keep the task consistent and consider an ABAB crossover. [Read the methodology](docs/methodology.md).
 
+## Test whether a change holds up across runs
+
+ReclaimLab 0.2 plans balanced crossover studies, records each condition with a protocol stamp and compares whole paired runs. It detects reused sample payloads, changed protocols, schedule/order problems and incompatible captures. Missing or bad pairs remain visible in the audit.
+
+```bash
+reclaimlab plan --workload "usual browser task" --candidate "Lower video resolution" --output trial/study.json
+reclaimlab next trial/study.json
+# Apply the displayed condition yourself, then reproduce the task during capture.
+reclaimlab next trial/study.json --record
+# Repeat next / apply condition / record for every planned capture.
+reclaimlab study trial/study.json --output study.html
+```
+
+The default is six pairs. Each pair has equal statistical weight; individual timer observations are not treated as independent experimental runs. The offline study report shows paired changes, an order-effect check, descriptive uncertainty and a per-capture audit. A matching stamp is a consistency check, not proof of causation or authenticity. [Protocol, interpretation and limits](docs/studies.md).
+
+Try a complete synthetic study without collecting device data:
+
+```bash
+reclaimlab study-demo --directory synthetic-study --output synthetic-study.html
+```
+
 ## Inside a report
 
 | View | What it gives you |
@@ -81,19 +102,21 @@ Process collection is off by default. No command lines, window titles, browser h
 - **Observer overhead** is measured, not assumed negligible. Capture quality flags excessive recorder CPU use and slow sampling.
 - **Hardware signatures** are deliberately coarse and non-identifying. Matching signatures do not prove two traces came from the same physical machine.
 
-Linux captures `/proc` CPU/memory, available PSI, swap and block-device counters, plus optional CPU-related thermal counters. Windows uses direct native APIs for CPU, immediately available memory, commit headroom, power status and optional process evidence. Windows PSI, disk-busy and thermal values remain unavailable in v0.1. [Exact coverage and limits](docs/counters.md).
+Linux captures `/proc` CPU/memory, available PSI, swap and block-device counters, plus optional CPU-related thermal counters. Windows uses direct native APIs for CPU, immediately available memory, commit headroom, power status and optional process evidence. Windows PSI, disk-busy and thermal values remain unavailable in v0.2. [Exact coverage and limits](docs/counters.md).
 
 ## Connect it to DevPocket
 
-ReclaimLab is also an optional **DevPocket API v1 plugin**. Install both projects in the same environment, then:
+ReclaimLab includes two optional **DevPocket API v1 plugins**. Install both projects in the same environment, then:
 
 ```bash
 devpocket plugins enable reclaimlab
+devpocket plugins enable reclaimlab-study
 devpocket run reclaimlab --input '{"trace":"before.jsonl"}' --format sarif
-devpocket serve --root /absolute/path/to/project --plugin reclaimlab
+devpocket run reclaimlab-study --input '{"manifest":"trial/study.json"}' --format json
+devpocket serve --root /absolute/path/to/project --plugin reclaimlab --plugin reclaimlab-study
 ```
 
-The plugin reads saved traces; it does not start recording or tune the machine. Findings work with DevPocket checks, baselines, SARIF and MCP. [Integration guide](docs/devpocket.md).
+The plugins read saved traces/studies; they do not start recording or tune the machine. Findings work with DevPocket checks, baselines, SARIF and MCP. Both opt into DevPocket 0.4 result caching when the project declares all input files. [Integration guide](docs/devpocket.md).
 
 ## Development
 

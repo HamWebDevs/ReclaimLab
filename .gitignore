@@ -8,4 +8,5 @@ dist/
 *.jsonl
 *.html
 !reclaimlab/report_template.html
+!reclaimlab/study_template.html
 .integration-host/

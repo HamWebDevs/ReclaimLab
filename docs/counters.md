@@ -7,7 +7,7 @@
 | Aggregate CPU active time | `/proc/stat`; idle, iowait and stolen time excluded | `GetSystemTimes`; idle subtracted from kernel+user |
 | CPU iowait / stolen time | Counter deltas | Unavailable |
 | Immediately available memory | `MemAvailable` from `/proc/meminfo`; unknown if absent | `GlobalMemoryStatusEx` physical available bytes |
-| Commit utilisation | Unavailable in v0.1 | `GetPerformanceInfo` commit total / current commit limit |
+| Commit utilisation | Unavailable in v0.2 | `GetPerformanceInfo` commit total / current commit limit |
 | CPU/memory/I/O pressure | PSI `some total` deltas when available | Unavailable |
 | Swap traffic | `pswpin` / `pswpout` deltas times page size | Unavailable; pagefile capacity is not treated as paging traffic |
 | Device busy time | Maximum among recognised whole block devices in `/proc/diskstats` | Unavailable |
@@ -22,7 +22,7 @@ Linux guest time is already included in user/nice time and is not added twice. S
 
 Container metrics can describe host capacity rather than a process's cgroup quota; detected container contexts carry a warning. Virtual machines, hot-plug hardware, heterogeneous CPUs and Windows processor-group behaviour on systems with more than 64 logical CPUs require additional care. The intended first target is small older laptops, not a server profiler.
 
-Native capture is read-only and needs no elevation for normal accessible counters. Unavailable or denied counters are `null`, not zero. Windows versions older than the CI runners, including Windows 8.1, have not been tested. The APIs are longstanding, but interpreter and OS compatibility still need real-device verification. macOS has no live backend in v0.1.
+Native capture is read-only and needs no elevation for normal accessible counters. Unavailable or denied counters are `null`, not zero. Windows versions older than the CI runners, including Windows 8.1, have not been tested. The APIs are longstanding, but interpreter and OS compatibility still need real-device verification. macOS has no live backend in v0.2.
 
 ## Schema 1 JSONL
 

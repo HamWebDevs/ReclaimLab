@@ -51,3 +51,17 @@ reclaimlab doctor
 The demonstration is synthetic and labelled accordingly. `doctor` probes the live backend; it fails clearly on platforms without a capture backend. Offline analysis/report/demo commands work there.
 
 All outputs are UTF-8, created with restrictive permissions where supported, and never overwrite an existing path. Exit codes: 0 completed, 2 invalid input/tool error, 130 interrupted. No network requests are made by the application. Normal Python/package installation may use a package registry for build tools.
+
+## Repeated studies
+
+```bash
+reclaimlab plan --workload "same browser task" --candidate "Lower video resolution" --pairs 6 --seed 42 --output trial/study.json
+reclaimlab next trial/study.json --json
+reclaimlab next trial/study.json --record
+reclaimlab study trial/study.json --iterations 2000 --output study.html --json
+reclaimlab study-demo --directory synthetic-study --output synthetic-study.html
+```
+
+`plan` defaults to six pairs, 60 seconds per capture, a 0.5-second native interval and order seed 0. It accepts 2–20 pairs, 20–3,600 seconds and 0.2–10 seconds between native samples. `--title`, `--baseline` and `--candidate` describe the protocol; `--workload` is required. Descriptions are limited to 200 characters.
+
+`next` only inspects existing files and shows the next condition. Apply that condition yourself before using `--record`; recording starts immediately with that flag. Existing captures are never overwritten. `study` accepts 500–10,000 bootstrap iterations, default 2,000, with separate analysis seed 0. A completed audit can return a not-comparable result with exit 0; inspect its verdict or use the DevPocket plugin's quality gates. [Full protocol and statistical limits](studies.md).

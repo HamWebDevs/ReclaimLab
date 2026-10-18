@@ -11,7 +11,7 @@ import time
 
 from . import __version__
 from .native import collector, delta
-from .trace import exclusive, signature, write_row
+from .trace import exclusive, signature, validate_study_stamp, write_row
 
 
 class Heartbeat:
@@ -45,14 +45,18 @@ class Heartbeat:
         return values
 
 
-def record(path, seconds=60, interval=.5, label="recording", processes=False, interactive=False, backend=None, workload=""):
+def record(path, seconds=60, interval=.5, label="recording", processes=False, interactive=False, backend=None, workload="", study_stamp=None):
     if not 2 <= seconds <= 3600 or not .2 <= interval <= 10 or len(label) > 200 or len(workload) > 200:
         raise ValueError("Use 2..3600 seconds, a .2..10 second sample interval and a label up to 200 characters")
+    if study_stamp is not None:
+        validate_study_stamp(study_stamp)
     source = backend or collector(processes)
     previous = source.snapshot()
     cpus = os.cpu_count() or 1
     header = {"type": "header", "schema": 1, "version": __version__, "label": label, "workload": workload, "created_utc": datetime.now(timezone.utc).isoformat(), "platform": platform.system(), "release": platform.release(), "backend": source.name, "interval_s": interval, "heartbeat_s": .05, "process_names_enabled": processes, "hardware": {"logical_cpus": cpus, "memory_bytes": previous.get("memory_total"), "machine": platform.machine(), **source.description()}}
     header["compatibility_signature"] = signature(header)
+    if study_stamp is not None:
+        header["study"] = dict(study_stamp)
     beat = Heartbeat()
     commands = queue.Queue(maxsize=128)
     start = time.monotonic()

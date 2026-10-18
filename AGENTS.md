@@ -10,3 +10,6 @@
 - The report template is package data. Verify an installed-wheel report from outside the source checkout after packaging changes.
 - Keep confidence language honest: scheduling probe lateness is not GUI input latency; overlap is not cause; synthetic data is not measured performance.
 - The optional DevPocket adapter must remain read-only and import the SDK only when used.
+- Study protocols stay below their manifest directory. Preserve protocol stamps, schedule checks, reused-sample detection and all incompatible pairs in the audit.
+- The study bootstrap resamples whole paired runs with equal weights; do not pool heartbeat observations as independent experiments.
+- Study plugins remain compatible with DevPocket API v1; only host 0.4+ provides optional caching. Declare every referenced capture in cache inputs.

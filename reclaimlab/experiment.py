@@ -12,9 +12,8 @@ def blocks(trace):
     return [v for v in grouped.values() if v]
 
 
-def compare(before, after, iterations=300, seed=0):
-    if type(iterations) is not int or not 50 <= iterations <= 2000:
-        raise ValueError("Bootstrap iterations must be 50..2000")
+def assess(before, after):
+    """Describe a pair and its compatibility without resampling observations."""
     a, b = analyse(before), analyse(after)
     incompatible = []
     context = []
@@ -57,6 +56,17 @@ def compare(before, after, iterations=300, seed=0):
         incompatible.append("Need at least 20 occupied one-second blocks and 200 wake observations per capture.")
     before_p95, after_p95 = a["summary"]["wake_p95_ms"], b["summary"]["wake_p95_ms"]
     change = after_p95 - before_p95 if before_p95 is not None and after_p95 is not None else None
+    return {"schema": 1, "before": a, "after": b, "change_p95_ms": change, "incompatible": list(dict.fromkeys(incompatible)), "context": context}
+
+
+def compare(before, after, iterations=300, seed=0):
+    if type(iterations) is not int or not 50 <= iterations <= 2000:
+        raise ValueError("Bootstrap iterations must be 50..2000")
+    result = assess(before, after)
+    incompatible = result["incompatible"]
+    before_p95 = result["before"]["summary"]["wake_p95_ms"]
+    change = result["change_p95_ms"]
+    ba, bb = blocks(before), blocks(after)
     interval = None
     verdict = "not comparable" if incompatible else "inconclusive"
     if not incompatible:
@@ -74,4 +84,4 @@ def compare(before, after, iterations=300, seed=0):
             verdict = "lower measured wake delay"
         elif interval[0] > 0 and change >= material:
             verdict = "higher measured wake delay"
-    return {"schema": 1, "before": a, "after": b, "verdict": verdict, "change_p95_ms": change, "relative_change_pct": change * 100 / before_p95 if before_p95 and change is not None else None, "bootstrap_interval95_ms": interval, "bootstrap_iterations": iterations if interval else 0, "seed": seed, "incompatible": list(dict.fromkeys(incompatible)), "context": context, "interpretation": "Non-randomised before/after observations. A measured difference does not establish that the attempted tweak caused it. Repeat the same task, change one thing, and consider ABAB crossover runs. One-second bootstrap blocks do not remove longer-range dependence."}
+    return {**result, "verdict": verdict, "relative_change_pct": change * 100 / before_p95 if before_p95 and change is not None else None, "bootstrap_interval95_ms": interval, "bootstrap_iterations": iterations if interval else 0, "seed": seed, "interpretation": "Non-randomised before/after observations. A measured difference does not establish that the attempted tweak caused it. Repeat the same task, change one thing, and consider ABAB crossover runs. One-second bootstrap blocks do not remove longer-range dependence."}
