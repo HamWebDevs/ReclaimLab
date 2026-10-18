@@ -1,5 +1,15 @@
 # Contributing
 
+The browser-network report has optional real-Chromium checks in addition to the standard-library test suite:
+
+```bash
+python -m pip install playwright
+python -m playwright install chromium
+python examples/verify_network_report.py --output-directory network-preview
+```
+
+Playwright is a development-only tool, not a runtime dependency. The verifier creates a synthetic report and desktop/mobile screenshots, checks filters/windowing and refuses an existing output directory. CI runs it in a separate job and retains the report/screenshots as artifacts.
+
 Keep collection cheap, evidence explainable and system changes explicit.
 
 - Use Python 3.10-compatible code and standard-library runtime dependencies only.

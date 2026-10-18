@@ -8,4 +8,6 @@ Trace inputs are bounded and validated. Report JSON escapes HTML delimiters, DOM
 
 No automatic fixes are applied. Diagnostic overlap rules and before/after intervals do not establish causality or hardware health. The tool does not replace security monitoring or driver/application-specific tracing.
 
+HAR imports may contain credentials and personal data even after browser sanitization. The HAR parser returns only allowlisted measurements, aliases origins/requests by default, and omits headers, cookies, bodies, queries, URL userinfo, absolute timestamps and exporter metadata. Explicit `--include-paths` includes hostnames and paths, which can expose identifiers or path-based tokens; review before sharing. This is not a guarantee of anonymization. The original HAR is never rewritten or uploaded. The optional HAR plugin always uses aliases and returns bounded summaries rather than the full capture.
+
 For a vulnerability, request a private reporting channel without posting credentials, private logs or exploit-bearing personal data in a public issue. Use GitHub private reporting if enabled.

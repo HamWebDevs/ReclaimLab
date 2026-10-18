@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "plugins": ["reclaimlab-har"],
+  "checks": {
+    "production-build": {
+      "tool": "assetguard",
+      "input": {
+        "path": "dist",
+        "max_total_gzip_kib": 1024,
+        "max_asset_gzip_kib": 256
+      }
+    },
+    "captured-network": {
+      "tool": "reclaimlab-har",
+      "input": {
+        "capture": "artifacts/page.har",
+        "max_requests": 100,
+        "max_body_kib": 1024,
+        "max_wait_p95_ms": 800,
+        "max_errors": 0
+      },
+      "cache": {"inputs": ["artifacts/page.har"], "max_age": 3600}
+    }
+  }
+}

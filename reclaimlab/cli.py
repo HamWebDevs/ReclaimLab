@@ -10,8 +10,8 @@ from .demo import synthetic
 from .experiment import compare
 from .native import collector
 from .record import record
-from .report import create, create_study
-from . import study
+from .report import create, create_study, create_network
+from . import har, study
 from .trace import exclusive, load, write_row
 
 def parser():
@@ -25,6 +25,18 @@ def parser():
     r.add_argument('--workload', default='', help='Use the same description for the repeated task')
     r.add_argument('--processes', action='store_true', help='Opt in to process names/PIDs/CPU/available RSS; no command lines')
     r.add_argument('--interactive', action='store_true', help='Type a label and Enter to mark a moment; quit to finish')
+    r.add_argument('--output', required=True)
+    r = sub.add_parser('har', help='Analyze a saved browser HAR with offline waterfall reports and CI budgets')
+    r.add_argument('capture', help='HAR 1.2 export; never uploaded or replayed')
+    r.add_argument('--page', type=int, help='One-based page number; required for multi-page captures')
+    r.add_argument('--include-paths', action='store_true', help='Opt in to origin/path labels; queries, userinfo and fragments remain excluded')
+    r.add_argument('--max-requests', type=int)
+    r.add_argument('--max-body-kib', type=float, help='Budget for captured response-body bytes; requires complete body-size coverage')
+    r.add_argument('--max-wait-p95-ms', type=float, help='Budget for the HAR response-wait phase p95; incomplete/inconsistent measurements fail verification')
+    r.add_argument('--max-errors', type=int, help='Budget for HTTP status >=400 plus status 0')
+    r.add_argument('--json', action='store_true')
+    r.add_argument('--output', help='Optional fresh offline HTML network report')
+    r = sub.add_parser('har-demo', help='Create a clearly labelled synthetic browser-network report')
     r.add_argument('--output', required=True)
     a = sub.add_parser('analyze', help='Explain trace evidence without changing settings')
     a.add_argument('trace')
@@ -86,6 +98,26 @@ def main(argv=None):
             s = source.snapshot()
             print(json.dumps({'platform': platform.system(), 'backend': source.name, 'cpu_counters': bool(s.get('cpu')), 'memory_available': s.get('memory_available') is not None, 'psi': bool(s.get('psi', {}).get('memory')), 'disk_counters': bool(s.get('disks')), 'thermal': s.get('temperature_c') is not None, 'power': s['power'], 'process_names_default': False, **source.description()}, indent=2))
             return 0
+        if args.action in {'har', 'har-demo'}:
+            if args.action == 'har-demo':
+                result = har.analyse(har.synthetic(), include_paths=True)
+            else:
+                result = har.load(args.capture, **{key: getattr(args, key) for key in ('page', 'include_paths', 'max_requests', 'max_body_kib', 'max_wait_p95_ms', 'max_errors')})
+            if args.output:
+                create_network(result, args.output)
+            if getattr(args, 'json', False):
+                print(json.dumps(result, indent=2, allow_nan=False))
+            else:
+                summary = result['summary']
+                print('Synthetic network demo' if result['synthetic'] else 'Captured browser HTTP activity')
+                print(f"{summary['requests']} requests; {summary['known_body_bytes']} known response-body bytes ({summary['body_known_requests']}/{summary['requests']} measured); wait p95: {summary['wait_p95_ms']} ms")
+                print('Budgets: ' + result['verdict'])
+                for issue in result['findings']:
+                    print(f"[{issue['severity']}] {issue['rule']}: {issue['message']}")
+                if args.output:
+                    print('Offline network report saved: ' + args.output)
+                print(result['interpretation'])
+            return int(any(b['state'] != 'pass' for b in result['budgets']))
         if args.action == 'demo':
             trace = synthetic()
             create(trace, args.output, comparison=compare(trace, synthetic('Synthetic comparison', improved=True)))

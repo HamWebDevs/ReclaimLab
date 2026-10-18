@@ -5,13 +5,27 @@
 [![MIT](https://img.shields.io/badge/licence-MIT-8ce8be)](LICENSE)
 ![Runtime dependencies: zero](https://img.shields.io/badge/runtime_dependencies-zero-8ce8be)
 
-**A performance flight recorder and experiment notebook for older laptops.**
+**A local performance lab for laptops and web applications.**
 
-Record a slowdown while doing your normal work. See scheduling delays alongside native CPU, memory and available pressure counters. Change one thing, record again, and compare the measurements in a self-contained interactive report.
+Record a slowdown while doing your normal work, or inspect a saved browser network capture. See native scheduling/resource evidence, explore HTTP request waterfalls and run explicit performance budgets. Compare deliberate changes with repeatable laptop experiments and self-contained reports.
 
 No account, background service, automatic tuning, telemetry or runtime dependencies. Capture supports **Windows and Linux**; analysis and reports also work on macOS.
 
-[Quick start](#quick-start) · [Repeated studies](docs/studies.md) · [How it works](docs/methodology.md) · [Commands](docs/commands.md) · [Counter coverage](docs/counters.md) · [DevPocket integration](docs/devpocket.md)
+[Quick start](#quick-start) · [Browser network lab](docs/browser-network.md) · [Repeated studies](docs/studies.md) · [How it works](docs/methodology.md) · [Commands](docs/commands.md) · [DevPocket integration](docs/devpocket.md)
+
+## Find the next question in a browser network capture
+
+Export a HAR from your browser's developer tools, then:
+
+```bash
+reclaimlab har artifacts/page.har --output network.html
+reclaimlab har artifacts/page.har --max-body-kib 1024 --max-wait-p95-ms 800 --max-errors 0 --json
+reclaimlab har-demo --output synthetic-network.html
+```
+
+Filter the offline waterfall by resource type, origin, request errors and time window. Inspect response waits, payload-size coverage, request overlap and repeated GET groups. Reports use request/origin aliases by default and discard headers, cookies, bodies, queries and URL credentials. Opt in to origin/path labels with `--include-paths` when useful locally.
+
+Choose your own budgets. Missing measurements cannot pass verification, TLS is never counted twice, and multi-page exports require explicit page selection. These are captured HTTP measurements, not a page-speed score or Core Web Vitals result. [Metrics, privacy, CI and the working configuration →](docs/browser-network.md)
 
 ## Quick start
 
@@ -91,7 +105,7 @@ reclaimlab record --processes --output processes.jsonl
 reclaimlab analyze marked.jsonl --around "video froze" --radius 5 --json
 ```
 
-Process collection is off by default. No command lines, window titles, browser history, hostnames, usernames, network addresses or hardware serial numbers are intentionally collected. Labels and process names can still be private; review reports before sharing.
+Native process collection is off by default. Native recordings intentionally exclude command lines, window titles, browser history, hostnames, usernames, network addresses and hardware serial numbers. Labels and process names can still be private; review reports before sharing. Saved HAR imports have separate [field-discard and path-label controls](docs/browser-network.md).
 
 ## What the measurements mean
 
@@ -102,21 +116,23 @@ Process collection is off by default. No command lines, window titles, browser h
 - **Observer overhead** is measured, not assumed negligible. Capture quality flags excessive recorder CPU use and slow sampling.
 - **Hardware signatures** are deliberately coarse and non-identifying. Matching signatures do not prove two traces came from the same physical machine.
 
-Linux captures `/proc` CPU/memory, available PSI, swap and block-device counters, plus optional CPU-related thermal counters. Windows uses direct native APIs for CPU, immediately available memory, commit headroom, power status and optional process evidence. Windows PSI, disk-busy and thermal values remain unavailable in v0.2. [Exact coverage and limits](docs/counters.md).
+Linux captures `/proc` CPU/memory, available PSI, swap and block-device counters, plus optional CPU-related thermal counters. Windows uses direct native APIs for CPU, immediately available memory, commit headroom, power status and optional process evidence. Windows PSI, disk-busy and thermal values remain unavailable. [Exact coverage and limits](docs/counters.md).
 
 ## Connect it to DevPocket
 
-ReclaimLab includes two optional **DevPocket API v1 plugins**. Install both projects in the same environment, then:
+ReclaimLab includes three optional **DevPocket API v1 plugins**. Install both projects in the same environment, then:
 
 ```bash
 devpocket plugins enable reclaimlab
 devpocket plugins enable reclaimlab-study
+devpocket plugins enable reclaimlab-har
 devpocket run reclaimlab --input '{"trace":"before.jsonl"}' --format sarif
 devpocket run reclaimlab-study --input '{"manifest":"trial/study.json"}' --format json
+devpocket run reclaimlab-har --input '{"capture":"artifacts/page.har","max_errors":0}' --format sarif
 devpocket serve --root /absolute/path/to/project --plugin reclaimlab --plugin reclaimlab-study
 ```
 
-The plugins read saved traces/studies; they do not start recording or tune the machine. Findings work with DevPocket checks, baselines, SARIF and MCP. Both opt into DevPocket 0.4 result caching when the project declares all input files. [Integration guide](docs/devpocket.md).
+The plugins read saved traces, studies and HAR captures; they do not start recording or tune the machine. Findings work with DevPocket checks, baselines, SARIF and MCP. All three support DevPocket 0.4+ result caching when every input is declared. Combine HAR gates with DevPocket 0.5's AssetGuard to review built artifacts and captured network activity together. [Integration guide](docs/devpocket.md).
 
 ## Development
 

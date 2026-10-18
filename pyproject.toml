@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reclaimlab-toolkit"
-version = "0.2.0"
-description = "Record laptop slowdowns, inspect evidence and compare changes without guessing."
+version = "0.3.0"
+description = "Local performance evidence for laptop traces, browser networks and repeatable experiments."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -22,9 +22,10 @@ reclaimlab = "reclaimlab.cli:main"
 [project.entry-points."devpocket.tools"]
 reclaimlab = "reclaimlab.integration:build_tool"
 reclaimlab-study = "reclaimlab.integration:build_study_tool"
+reclaimlab-har = "reclaimlab.integration:build_har_tool"
 
 [tool.setuptools.packages.find]
 include = ["reclaimlab*"]
 
 [tool.setuptools.package-data]
-reclaimlab = ["report_template.html", "study_template.html"]
+reclaimlab = ["report_template.html", "study_template.html", "network_template.html"]

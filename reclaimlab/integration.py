@@ -41,3 +41,24 @@ def build_study_tool():
     from devpocket.sdk import ToolSpec
     options = {'cache_version': 'study-v1'} if 'cache_version' in ToolSpec.__dataclass_fields__ else {}
     return ToolSpec(name='reclaimlab-study', description='Audit a repeated laptop experiment and compare paired runs', input_schema={'type': 'object', 'properties': {'manifest': {'type': 'string', 'maxLength': 4096}, 'iterations': {'type': 'integer', 'minimum': 500, 'maximum': 10000}}, 'required': ['manifest'], 'additionalProperties': False}, run=inspect_study, read_only=True, **options)
+
+
+def inspect_har(context, params):
+    from devpocket.sdk import Finding, ToolResult
+    from . import har
+    path = context.resolve(params['capture'])
+    if (context.root / params['capture']).is_symlink():
+        raise ValueError('HAR input cannot be a symlink')
+    report = har.load(path, **{key: params[key] for key in ('page', 'max_requests', 'max_body_kib', 'max_wait_p95_ms', 'max_errors') if key in params})
+    relative = path.relative_to(context.root).as_posix()
+    findings = [Finding(item['rule'], item['message'], severity=item['severity'], path=relative) for item in report['findings']]
+    if report['synthetic']:
+        findings.append(Finding('har-synthetic', 'Capture uses synthetic demonstration data', severity='note', path=relative))
+    return ToolResult('Captured browser network: ' + report['verdict'], findings, har.compact(report))
+
+
+def build_har_tool():
+    from devpocket.sdk import ToolSpec
+    options = {'cache_version': 'har-v1'} if 'cache_version' in ToolSpec.__dataclass_fields__ else {}
+    properties = {'capture': {'type': 'string', 'maxLength': 4096}, 'page': {'type': 'integer', 'minimum': 1, 'maximum': 100}, 'max_requests': {'type': 'integer', 'minimum': 0, 'maximum': 1000000000000}, 'max_errors': {'type': 'integer', 'minimum': 0, 'maximum': 1000000000000}, 'max_body_kib': {'type': 'number', 'minimum': 0, 'maximum': 1000000000000}, 'max_wait_p95_ms': {'type': 'number', 'minimum': 0, 'maximum': 1000000000000}}
+    return ToolSpec(name='reclaimlab-har', description='Audit a saved HAR with private network summaries, coverage and explicit performance budgets', input_schema={'type': 'object', 'properties': properties, 'required': ['capture'], 'additionalProperties': False}, run=inspect_har, read_only=True, **options)

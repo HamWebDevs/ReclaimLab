@@ -27,12 +27,31 @@ jobs:
         working-directory: ${{ runner.temp }}
       - run: reclaimlab study-demo --directory synthetic-study --output reclaimlab-study.html
         working-directory: ${{ runner.temp }}
+      - run: reclaimlab har-demo --output reclaimlab-network.html
+        working-directory: ${{ runner.temp }}
       - uses: actions/upload-artifact@v4
         with:
           name: demo-${{ runner.os }}-${{ matrix.python }}
           path: |
             ${{ runner.temp }}/reclaimlab-demo.html
             ${{ runner.temp }}/reclaimlab-study.html
+            ${{ runner.temp }}/reclaimlab-network.html
+  browser-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install . playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: python examples/verify_network_report.py --output-directory network-preview
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-network-preview
+          path: network-preview
   devpocket-integration:
     strategy:
       fail-fast: false
@@ -44,7 +63,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: HamWebDevs/DevPocket
-          ref: 40534a3ec02838c21ffb350c070392d06a6a5dbc
+          ref: 07a5ba0a4dc64083492a587f8bf2a72dc3331459
           path: .integration-host
       - uses: actions/setup-python@v5
         with:

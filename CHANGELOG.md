@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-18
+
+- Add offline HAR 1.2 analysis with explicit page scoping, interval-union busy time, request concurrency, response-wait p95, size coverage and query-sensitive repeated GET groups.
+- Add private-by-default exports: origin/request aliases and allowlisted measurements; discard headers, cookies, bodies, queries, userinfo and absolute timestamps. Origin/path labels require explicit opt-in.
+- Add `har` request/body/wait/error budgets with pass/fail/unknown results; missing or inconsistent measurements cannot pass verification. Preserve zero values and avoid TLS/connect double counting.
+- Add a self-contained network report with searchable, paginated waterfalls, error/origin/type filters, time windows, detailed timings and honest scope/coverage explanations.
+- Add `har-demo`, the optional read-only `reclaimlab-har` DevPocket plugin and a combined web-build/network CI configuration.
+- Validate bounded inputs and package the network report template for installed-wheel use on Windows, Linux and macOS.
+
 ## 0.2.0 — 2026-10-18
 
 - Add verified GitHub release builds with wheels, source distributions, versioned tags and SHA-256 checksums.

@@ -50,7 +50,18 @@ reclaimlab doctor
 
 The demonstration is synthetic and labelled accordingly. `doctor` probes the live backend; it fails clearly on platforms without a capture backend. Offline analysis/report/demo commands work there.
 
-All outputs are UTF-8, created with restrictive permissions where supported, and never overwrite an existing path. Exit codes: 0 completed, 2 invalid input/tool error, 130 interrupted. No network requests are made by the application. Normal Python/package installation may use a package registry for build tools.
+All outputs are UTF-8, created with restrictive permissions where supported, and never overwrite an existing path. Exit codes: 0 completed, 1 a configured HAR budget failed or could not be verified, 2 invalid input/tool error, 130 interrupted. No network requests are made by the application. Normal Python/package installation may use a package registry for build tools.
+
+## Browser network captures
+
+```bash
+reclaimlab har artifacts/page.har --output network.html
+reclaimlab har artifacts/page.har --max-body-kib 1024 --max-wait-p95-ms 800 --max-errors 0 --json
+reclaimlab har artifacts/pages.har --page 2 --include-paths --output named-network.html
+reclaimlab har-demo --output synthetic-network.html
+```
+
+HAR 1.2 inputs are read offline; no requests are replayed. Aliases are the default; origin/path labels require opt-in. Budget units, pass/fail/unknown behavior, page scoping, discarded fields and interpretation are documented in the [browser network guide](browser-network.md).
 
 ## Repeated studies
 

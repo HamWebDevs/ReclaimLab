@@ -38,3 +38,7 @@ def create(trace, output, analysis=None, comparison=None):
 
 def create_study(result, output):
     return write_document(result, result['title'], output, 'study_template.html')
+
+
+def create_network(result, output):
+    return write_document(result, 'Browser network report', output, 'network_template.html')
