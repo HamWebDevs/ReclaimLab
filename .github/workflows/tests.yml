@@ -1,0 +1,45 @@
+name: Tests
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ['3.10', '3.12', '3.14']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install .
+      - run: python -m unittest discover -s tests -v
+      - run: reclaimlab --help
+      - run: reclaimlab doctor
+        if: runner.os != 'macOS'
+      - run: reclaimlab demo --output reclaimlab-demo.html
+        working-directory: ${{ runner.temp }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: demo-${{ runner.os }}-${{ matrix.python }}
+          path: ${{ runner.temp }}/reclaimlab-demo.html
+  devpocket-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: HamWebDevs/DevPocket
+          ref: 9c156e87a0871aeefaaf014c73a19bce7b98f48a
+          path: .integration-host
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install . ./.integration-host
+      - run: python examples/verify_devpocket.py

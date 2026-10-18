@@ -1,0 +1,12 @@
+# Working on ReclaimLab
+
+- Python 3.10+; no runtime dependencies.
+- Run checks from the repository root: `python -m unittest discover -s tests -v`.
+- Native capture supports Windows/Linux. Analysis/report tests run on macOS too; do not fake a native backend there.
+- `native.py` reads counters; `record.py` captures; `trace.py` validates; `analysis.py` explains; `experiment.py` compares; `report.py` creates offline HTML.
+- Preserve unknown values, unit conversions, counter-reset/PID-reuse handling and monotonic timing.
+- Do not add system tweaks, elevation, shell commands, network calls or automatic uploads without an explicit user request.
+- Protect trace/report boundaries and exclusive writes. All trace text is untrusted; never insert it with innerHTML or directly into executable JavaScript.
+- The report template is package data. Verify an installed-wheel report from outside the source checkout after packaging changes.
+- Keep confidence language honest: scheduling probe lateness is not GUI input latency; overlap is not cause; synthetic data is not measured performance.
+- The optional DevPocket adapter must remain read-only and import the SDK only when used.
