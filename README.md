@@ -126,7 +126,7 @@ python -m unittest discover -s tests -v
 
 Tests cover native counter maths, counter reset/PID reuse, trace validation, missing measurements, evidence rules, comparison blockers, reproducible intervals, report injection boundaries and JavaScript interactions. Windows/Linux CI additionally exercises real short native captures. The GitHub matrix covers Python 3.10, 3.12 and 3.14 on Windows, Linux and macOS; macOS live capture is intentionally unsupported.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Windows 8.1 compatibility has not been verified; use an interpreter supported by your OS. This is a diagnostic project, not a promise that software can overcome every hardware limit.
+See [CONTRIBUTING.md](CONTRIBUTING.md), [release packaging](docs/releases.md) and [SECURITY.md](SECURITY.md). Windows 8.1 compatibility has not been verified; use an interpreter supported by your OS. This is a diagnostic project, not a promise that software can overcome every hardware limit.
 
 ---
 

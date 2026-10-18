@@ -2,6 +2,7 @@
 
 ## 0.2.0 — 2026-10-18
 
+- Add verified GitHub release builds with wheels, source distributions, versioned tags and SHA-256 checksums.
 - Balanced seeded crossover plans, guided next-capture inspection and explicit planned recording.
 - Protocol/pair/condition stamps, workload/duration/schedule checks, per-run sample digests and reused-observation detection.
 - Whole-pair bootstrap analysis with equal pair weights, directional consistency gates and order-effect context.
