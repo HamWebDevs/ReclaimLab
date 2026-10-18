@@ -70,6 +70,8 @@ Network evidence complements the native laptop recorder. Correlation between sep
 
 Install DevPocket 0.5+ and ReclaimLab in one environment, review the plugin, then use [examples/web-checks.json](../examples/web-checks.json) as a project configuration. Supply your finished `dist` and saved `artifacts/page.har`:
 
+Record the HAR from the build and conditions you intend to evaluate, and retain browser/cache/throttling context with it. Build and network checks run independently: the configuration does not bind the capture to a build, certify its freshness or infer causality.
+
 ```bash
 devpocket plugins enable reclaimlab-har
 devpocket run reclaimlab-har --input '{"capture":"artifacts/page.har","max_errors":0}' --format sarif
