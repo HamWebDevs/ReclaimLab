@@ -28,9 +28,9 @@
 <div class="panel-head"><div><h2 id="waterfall-title">Request waterfall</h2><p class="hint">Filters change visible rows. Summary metrics and budgets always describe the full selected HAR scope.</p></div><span id="range-label" class="hint"></span></div>
 <div class="tools">
 <label class="control">Find a request<input id="search" type="search" placeholder="ID, path, type or origin" aria-label="Find a request"></label>
-<label class="control">Resource<select id="kind-filter"><option value="all">All types</option></select></label>
-<label class="control">Origin<select id="origin-filter"><option value="all">All origins</option></select></label>
-<label class="control">Sort by<select id="sort-order"><option value="start">Start time</option><option value="wait">Longest wait</option><option value="duration">Longest duration</option><option value="body">Largest body</option></select></label>
+<label class="control">Resource<select id="kind-filter" aria-label="Resource"><option value="all">All types</option></select></label>
+<label class="control">Origin<select id="origin-filter" aria-label="Origin"><option value="all">All origins</option></select></label>
+<label class="control">Sort by<select id="sort-order" aria-label="Sort by"><option value="start">Start time</option><option value="wait">Longest wait</option><option value="duration">Longest duration</option><option value="body">Largest body</option></select></label>
 <label class="check"><input id="only-errors" type="checkbox">Errors only</label>
 </div>
 <div class="tools"><label class="control">Window start · ms<input id="time-start" type="number" min="0" step="any"></label><label class="control">Window end · ms<input id="time-end" type="number" min="0" step="any"></label><button id="reset-window">Full capture</button><span class="hint">Requests overlapping the window remain visible.</span></div>
