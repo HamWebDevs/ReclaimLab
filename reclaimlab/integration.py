@@ -107,3 +107,27 @@ def build_bundle_tool():
     from devpocket.sdk import ToolSpec
     options = {'cache_version': 'bundle-format1-v1'} if 'cache_version' in ToolSpec.__dataclass_fields__ else {}
     return ToolSpec(name='reclaimlab-bundle', description='Verify and reanalyse a bounded measurement-only experiment bundle without uploads, extraction or execution', input_schema={'type': 'object', 'properties': {'bundle': {'type': 'string', 'maxLength': 4096}, 'max_growth': {'type': 'number', 'minimum': 0, 'maximum': 1000000000000}}, 'required': ['bundle'], 'additionalProperties': False}, run=inspect_bundle, read_only=True, **options)
+
+
+def inspect_har_compare(context, params):
+    from devpocket.sdk import Finding, ToolResult
+    from . import har_compare
+    paths = []
+    for name in ('before', 'after'):
+        if (context.root / params[name]).is_symlink():
+            raise ValueError('HAR comparison input cannot be a symlink')
+        paths.append(context.resolve(params[name]))
+    report = har_compare.load(*paths, **{k: params[k] for k in ('before_page', 'after_page') if k in params})
+    findings = [Finding('har-comparison-descriptive', 'Two-capture comparison is descriptive; use repeated studies for regression gates', severity='note')]
+    if any(v['state'] == 'unknown' for v in report['delta'].values()):
+        findings.append(Finding('har-comparison-coverage', 'Missing measurements keep some comparison deltas unknown', severity='warning'))
+    if report['synthetic']:
+        findings.append(Finding('har-comparison-synthetic', 'Synthetic demonstration data', severity='note'))
+    return ToolResult('Before/after HTTP evidence: ' + str(report['summary']['routes']) + ' route groups', findings, har_compare.compact(report))
+
+
+def build_har_compare_tool():
+    from devpocket.sdk import ToolSpec
+    options = {'cache_version': 'har-compare-v1'} if 'cache_version' in ToolSpec.__dataclass_fields__ else {}
+    properties = {'before': {'type': 'string', 'maxLength': 4096}, 'after': {'type': 'string', 'maxLength': 4096}, 'before_page': {'type': 'integer', 'minimum': 1, 'maximum': 100}, 'after_page': {'type': 'integer', 'minimum': 1, 'maximum': 100}}
+    return ToolSpec(name='reclaimlab-har-compare', description='Compare two saved HAR samples with private route aliases and explicit unknown deltas', input_schema={'type': 'object', 'properties': properties, 'required': ['before', 'after'], 'additionalProperties': False}, run=inspect_har_compare, read_only=True, **options)

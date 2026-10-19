@@ -1,5 +1,9 @@
 # Commands
 
+## Browser capture comparison (1.1+)
+
+`har-compare BEFORE AFTER --output changes.html --json` compares saved HTTP route groups with private aliases. `--before-page`/`--after-page` select explicit pages and `--include-paths` opts into origin/path labels. `har-compare-demo --output demo.html` creates a labelled offline example. Growth alone returns 0; this is descriptive. See [matching, measurements, privacy and limits](har-comparison.md).
+
 ## Portable measurement bundles (1.0+)
 
 `bundle create MANIFEST --output experiment.rlb` writes an exclusive measurement-only archive after verifying that the field/time transformation preserves analysis. `bundle verify FILE --output verified.html --json` checks its inventory and evidence, reanalyses in memory and generates a fresh report. An optional `--max-growth` reapplies your chosen budget without changing the archive. See [format, privacy, bounds and gate statuses](bundles.md).

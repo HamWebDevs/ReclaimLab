@@ -2,8 +2,8 @@
 import argparse
 from pathlib import Path
 
-from reclaimlab import bundle, har, network_study
-from reclaimlab.report import create_network, create_network_study
+from reclaimlab import bundle, har, network_study, har_compare
+from reclaimlab.report import create_network, create_network_study, create_network_compare
 
 
 def main():
@@ -16,6 +16,8 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     report = output / 'network.html'
     create_network(har.analyse(har.synthetic(), include_paths=True), report)
+    comparison = output / 'network-comparison.html'
+    create_network_compare(har_compare.synthetic(), comparison)
     manifest = network_study.write_demo(output / 'study')
     study_report = output / 'network-study.html'
     create_network_study(network_study.evaluate(manifest, iterations=500, max_growth=0), study_report)
@@ -93,8 +95,29 @@ def main():
             page.screenshot(path=str(output / ('verified-bundle-' + name + '.png')), full_page=True)
         assert not errors, errors
         assert not network, network
+        page.goto(comparison.as_uri())
+        page.wait_for_selector('#route-rows button')
+        total = page.locator('#route-rows tr').count()
+        assert total > 0
+        summary = page.locator('#requests').inner_text()
+        page.get_by_label('Change', exact=True).select_option('added')
+        assert page.locator('#route-rows tr').count() == 1
+        assert page.locator('#requests').inner_text() == summary
+        page.locator('#route-rows button').first.click()
+        assert page.locator('#detail').is_visible()
+        assert 'route-' in page.locator('#detail-data').inner_text()
+        page.get_by_label('Find a route', exact=True).fill('no-match')
+        assert page.locator('#route-rows tr').count() == 0
+        page.get_by_role('button', name='Reset filters', exact=True).click()
+        assert page.locator('#route-rows tr').count() == total
+        for width, name in ((1440, 'desktop'), (390, 'mobile')):
+            page.set_viewport_size({'width': width, 'height': 900})
+            assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), name
+            page.screenshot(path=str(output / ('network-comparison-' + name + '.png')), full_page=True)
+        assert not errors, errors
+        assert not network, network
         browser.close()
-    print('Real Chromium HAR, paired-study and verified-bundle QA passed: desktop/mobile layout, filters, audit details, integrity metadata, stable totals, no JavaScript errors or network requests.')
+    print('Real Chromium HAR, comparison, paired-study and verified-bundle QA passed: desktop/mobile layout, filters, audit details, integrity metadata, stable totals, no JavaScript errors or network requests.')
     return 0
 
 

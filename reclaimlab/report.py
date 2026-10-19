@@ -46,3 +46,7 @@ def create_network(result, output):
 
 def create_network_study(result, output):
     return write_document(result, result['title'], output, 'network_study_template.html')
+
+
+def create_network_compare(result, output):
+    return write_document(result, 'Before / after HTTP captures', output, 'network_compare_template.html')

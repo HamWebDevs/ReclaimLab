@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/release.yml'
       - '.github/scripts/prepare_release.py'
+      - 'pyproject.toml'
 
 permissions:
   contents: write
@@ -17,7 +18,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    uses: ./.github/workflows/tests.yml
   publish:
+    needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -78,6 +82,7 @@ jobs:
           reclaimlab demo --output release-demo.html
           reclaimlab study-demo --directory release-study --output release-study.html
           reclaimlab har-demo --output release-network.html
+          reclaimlab har-compare-demo --output release-network-comparison.html
           reclaimlab network-study-demo --directory release-browser-study --output release-browser-study.html
           reclaimlab network-study release-browser-study/network-study.json --max-growth 0 --json
           reclaimlab bundle create release-browser-study/network-study.json --iterations 500 --max-growth 0 --output release-experiment.rlb

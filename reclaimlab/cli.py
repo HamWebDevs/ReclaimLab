@@ -10,8 +10,8 @@ from .demo import synthetic
 from .experiment import compare
 from .native import collector
 from .record import record
-from .report import create, create_study, create_network, create_network_study
-from . import bundle, har, study, network_study
+from .report import create, create_study, create_network, create_network_study, create_network_compare
+from . import bundle, har, study, network_study, har_compare
 from .trace import exclusive, load, write_row
 
 def parser():
@@ -37,6 +37,16 @@ def parser():
     r.add_argument('--json', action='store_true')
     r.add_argument('--output', help='Optional fresh offline HTML network report')
     r = sub.add_parser('har-demo', help='Create a clearly labelled synthetic browser-network report')
+    r.add_argument('--output', required=True)
+    r = sub.add_parser('har-compare', help='Compare two saved HAR samples descriptively, with private route matching')
+    r.add_argument('before')
+    r.add_argument('after')
+    r.add_argument('--before-page', type=int)
+    r.add_argument('--after-page', type=int)
+    r.add_argument('--include-paths', action='store_true', help='Opt in to origin/path labels; queries and URL userinfo stay excluded')
+    r.add_argument('--json', action='store_true')
+    r.add_argument('--output', help='Fresh offline comparison report')
+    r = sub.add_parser('har-compare-demo', help='Create a synthetic before/after network comparison')
     r.add_argument('--output', required=True)
     a = sub.add_parser('analyze', help='Explain trace evidence without changing settings')
     a.add_argument('trace')
@@ -174,6 +184,19 @@ def main(argv=None):
             source = collector()
             s = source.snapshot()
             print(json.dumps({'platform': platform.system(), 'backend': source.name, 'cpu_counters': bool(s.get('cpu')), 'memory_available': s.get('memory_available') is not None, 'psi': bool(s.get('psi', {}).get('memory')), 'disk_counters': bool(s.get('disks')), 'thermal': s.get('temperature_c') is not None, 'power': s['power'], 'process_names_default': False, **source.description()}, indent=2))
+            return 0
+        if args.action in {'har-compare', 'har-compare-demo'}:
+            result = har_compare.synthetic() if args.action == 'har-compare-demo' else har_compare.load(args.before, args.after, before_page=args.before_page, after_page=args.after_page, include_paths=args.include_paths)
+            if args.output:
+                create_network_compare(result, args.output)
+            if getattr(args, 'json', False):
+                print(json.dumps(result, indent=2, allow_nan=False))
+            else:
+                print('Synthetic demonstration' if result['synthetic'] else 'Descriptive HTTP capture comparison')
+                print(f"{result['summary']['routes']} route groups; {result['summary']['added']} added; {result['summary']['removed']} removed")
+                for name, metric in result['delta'].items():
+                    print(f"{name}: {metric['before']} -> {metric['after']}; change: {metric['change']}")
+                print(result['interpretation'])
             return 0
         if args.action in {'har', 'har-demo'}:
             if args.action == 'har-demo':

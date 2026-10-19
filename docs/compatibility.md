@@ -13,7 +13,7 @@ ReclaimLab 1.0.0 establishes supported contracts for the 1.x series:
 | HAR imports | HAR 1.2 allowlisted measurements; explicit multi-page scope and unknown coverage. |
 | Bundles | Network-bundle format 1, bounded canonical fields/checksums, frozen evidence and fresh reanalysis. |
 | JSON reports | Documented existing meanings remain; additive fields are permitted. Consumers should ignore unknown fields. |
-| DevPocket | Five read-only entry points using SDK API v1. Optional cache fields are omitted on older API v1 hosts. |
+| DevPocket | Six read-only entry points (five in 1.0) using SDK API v1. Optional cache fields are omitted on older API v1 hosts. |
 
 CLI command meanings, documented units and file-schema versions remain stable within 1.x. Text/HTML layout, internal Python modules and cache bytes are not public APIs. A new required file format or removal of a supported CLI option requires a documented migration and a new major release. Fixes can reject malformed/unsafe inputs and correct analysis; archived bundle evidence is never silently changed to fit a newer calculation.
 
@@ -23,8 +23,12 @@ All file readers reject nonfinite numeric values and bound integer literals to 1
 
 Existing schema-1 traces/protocols and HAR workflows remain usable. Keep original private traces/HARs if you need full source context; bundle export intentionally withholds descriptions and source identities. Verify a new bundle before sharing it. Older hosts do not gain new bundle commands automatically; install the v1 package to use the format-v1 reader/exporter.
 
-`analyze`, `compare` and native `study` are descriptive workflows; their successful execution is not an automatic performance gate. `har` enforces configured budgets, `network-study` enforces comparability/configured growth gates, and `bundle verify` enforces integrity plus those frozen/reapplied gates. See the command-specific guides for exact exit statuses. No command promises a speedup, diagnosis, independent runs or proof of causality.
+`analyze`, `compare`, `har-compare` and native `study` are descriptive workflows; their successful execution is not an automatic performance gate. `har` enforces configured budgets, `network-study` enforces comparability/configured growth gates, and `bundle verify` enforces integrity plus those frozen/reapplied gates. See the command-specific guides for exact exit statuses. No command promises a speedup, diagnosis, independent runs or proof of causality.
 
-Standalone installation never imports or requires DevPocket. Existing four plugin names remain unchanged; `reclaimlab-bundle` is additive. Installed integration CI uses DevPocket 1.x, including a configuration preflight, all five plugins, content invalidation, project/workspace checks, SARIF and MCP. API v1 host compatibility does not imply every old dependency bound accepts a 1.x package; maintainers should verify and update package metadata explicitly.
+Standalone installation never imports or requires DevPocket. Existing four plugin names remain unchanged; `reclaimlab-bundle` and the 1.1 `reclaimlab-har-compare` are additive. Installed integration CI uses DevPocket 1.x, including a configuration preflight, all six plugins, content invalidation, project/workspace checks, SARIF and MCP. API v1 host compatibility does not imply every old dependency bound accepts a 1.x package; maintainers should verify and update package metadata explicitly.
 
 Each release is built/tested, installs its wheel outside the source checkout, and includes a wheel, source archive and SHA-256 manifest. Packages are published as [GitHub release assets](https://github.com/HamWebDevs/ReclaimLab/releases), not PyPI. See [methodology](methodology.md), [security](../SECURITY.md) and [contributing](../CONTRIBUTING.md).
+
+## Upgrade from 1.0 to 1.1
+
+No file migration is required. `har-compare` and its optional plugin add descriptive two-capture differences without changing existing traces, protocols, budgets or bundle evidence. Declare both HARs for comparison caching. Existing host SDK API v1 remains supported.

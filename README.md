@@ -7,13 +7,21 @@
 
 **A local performance lab for laptops and web applications.**
 
-**Version 1:** stable file contracts, portable measurement bundles and five optional DevPocket plugins. [Compatibility and upgrading](docs/compatibility.md) · [Bundle format and verification](docs/bundles.md)
+**Version 1:** stable file contracts, portable measurement bundles and six optional DevPocket plugins. [Compatibility and upgrading](docs/compatibility.md) · [Bundle format and verification](docs/bundles.md)
 
 Record a slowdown while doing your normal work, inspect saved browser networks, or compare repeated baseline/candidate HAR exports. See native scheduling/resource evidence, explore HTTP waterfalls and gate captured metric growth using whole paired runs. Share self-contained offline reports and connect the evidence to DevPocket checks.
 
 No account, background service, automatic tuning, telemetry or runtime dependencies. Capture supports **Windows and Linux**; analysis and reports also work on macOS.
 
 [Quick start](#quick-start) · [Browser network lab](docs/browser-network.md) · [Browser experiments](docs/network-studies.md) · [Laptop studies](docs/studies.md) · [Commands](docs/commands.md) · [DevPocket integration](docs/devpocket.md)
+
+## See what changed between browser captures
+
+```bash
+reclaimlab har-compare before.har after.har --output changes.html --json
+```
+
+Find added/removed routes and changes in requests, captured body bytes and response waits. Matching survives reordered exports; query variants are grouped explicitly. The offline report provides search, filters, sorting and route details. Private aliases are the default and missing measurements stay unknown. This is a descriptive comparison; use repeated studies for growth gates. [Comparison guide and DevPocket plugin →](docs/har-comparison.md)
 
 ## Share evidence without sharing the original HAR
 

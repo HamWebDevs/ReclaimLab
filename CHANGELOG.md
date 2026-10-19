@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 — 2026-10-19
+
+- Add `har-compare` for descriptive before/after saved-browser captures: request/error counts, complete response-body sizes and response-wait p95, with unknown dependent deltas retained.
+- Match route groups by full origin, method and encoded path across reordered captures. Aggregate query variants explicitly and discard private matching keys from reports; aliases remain the default.
+- Add an offline responsive comparison report with search, state filters, pagination, sorting, route details, fixed capture totals and explicit measurement limits.
+- Add the sixth optional read-only DevPocket API v1 plugin with compact evidence and opt-in caching that declares both HAR files.
+- Extend CLI/privacy/bounds tests, installed six-plugin cache/SARIF/MCP checks and real-browser desktop/mobile QA. Existing schema-1 files and bundle format 1 remain unchanged.
+
 ## 1.0.0 — 2026-10-19
 
 - Establish supported 1.x file/CLI meanings, platform boundaries and SDK API v1 integration contracts, with an explicit upgrade guide.

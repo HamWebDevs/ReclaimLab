@@ -1,5 +1,9 @@
 name: Tests
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -29,6 +33,8 @@ jobs:
         working-directory: ${{ runner.temp }}
       - run: reclaimlab har-demo --output reclaimlab-network.html
         working-directory: ${{ runner.temp }}
+      - run: reclaimlab har-compare-demo --output reclaimlab-network-comparison.html
+        working-directory: ${{ runner.temp }}
       - run: reclaimlab network-study-demo --directory synthetic-network-study --output reclaimlab-network-study.html
         working-directory: ${{ runner.temp }}
       - run: reclaimlab bundle create synthetic-network-study/network-study.json --iterations 500 --max-growth 0 --output experiment.rlb
@@ -42,6 +48,7 @@ jobs:
             ${{ runner.temp }}/reclaimlab-demo.html
             ${{ runner.temp }}/reclaimlab-study.html
             ${{ runner.temp }}/reclaimlab-network.html
+            ${{ runner.temp }}/reclaimlab-network-comparison.html
             ${{ runner.temp }}/reclaimlab-network-study.html
             ${{ runner.temp }}/reclaimlab-verified.html
             ${{ runner.temp }}/experiment.rlb
