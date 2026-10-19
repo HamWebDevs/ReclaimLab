@@ -63,8 +63,9 @@ def main():
         (root / '.devpocket.json').write_text(json.dumps(config))
         first = json.loads(command(['check', '--format', 'json'], root, expected=1))
         reused = json.loads(command(['check', '--format', 'json'], root, expected=1))
-        assert all(s['report']['cache']['status'] == 'miss' for s in first['checks'])
-        assert all(s['report']['cache']['status'] == 'hit' for s in reused['checks'])
+        cache_states = lambda report: {s['name']: s['report'].get('cache') for s in report['checks']}
+        assert all(s['report']['cache']['status'] == 'miss' for s in first['checks']), cache_states(first)
+        assert all(s['report']['cache']['status'] == 'hit' for s in reused['checks']), cache_states(reused)
         capture['log']['entries'][-1]['response']['status'] = 200
         (root / 'demo.har').write_text(json.dumps(capture))
         updated = json.loads(command(['check', '--format', 'json'], root, expected=1))
