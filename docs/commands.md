@@ -1,5 +1,9 @@
 # Commands
 
+## Repeated browser experiments (0.4+)
+
+`network-plan` declares one primary metric, manual capture context and a balanced pair schedule. `network-next MANIFEST` shows the next manual export. `network-study MANIFEST --max-growth AMOUNT --output report.html --json` audits the exports, compares whole paired runs and gates uncertainty conservatively. `network-study-demo --directory fresh-demo --output demo.html` creates labelled synthetic inputs and an offline report. See [all options, metric units and exit codes](network-studies.md).
+
 [Back to ReclaimLab](../README.md)
 
 ## Capture

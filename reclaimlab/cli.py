@@ -10,8 +10,8 @@ from .demo import synthetic
 from .experiment import compare
 from .native import collector
 from .record import record
-from .report import create, create_study, create_network
-from . import har, study
+from .report import create, create_study, create_network, create_network_study
+from . import har, study, network_study
 from .trace import exclusive, load, write_row
 
 def parser():
@@ -80,6 +80,30 @@ def parser():
     r = sub.add_parser('study-demo', help='Write synthetic study traces and an offline report')
     r.add_argument('--directory', required=True, help='Fresh directory for the synthetic protocol and captures')
     r.add_argument('--output', required=True)
+    r = sub.add_parser('network-plan', help='Plan balanced repeated browser HAR comparisons')
+    r.add_argument('--title', default='Repeated browser experiment')
+    for field in ('workload', 'browser', 'cache', 'network'):
+        r.add_argument('--' + field, required=True)
+    r.add_argument('--baseline', default='Original build')
+    r.add_argument('--candidate', default='One deliberate change')
+    r.add_argument('--metric', choices=network_study.METRICS, default='wait_p95_ms')
+    r.add_argument('--pairs', type=int, default=6)
+    r.add_argument('--seed', type=int, default=0)
+    r.add_argument('--page', type=int)
+    r.add_argument('--output', required=True)
+    r = sub.add_parser('network-next', help='Show the next manual HAR export in the planned order')
+    r.add_argument('manifest')
+    r.add_argument('--json', action='store_true')
+    r = sub.add_parser('network-study', help='Audit repeated HAR captures and gate paired metric growth')
+    r.add_argument('manifest')
+    r.add_argument('--iterations', type=int, default=2000)
+    r.add_argument('--seed', type=int, default=0)
+    r.add_argument('--max-growth', type=float, help='Maximum candidate-minus-baseline growth in the selected metric units; uncertainty cannot pass')
+    r.add_argument('--json', action='store_true')
+    r.add_argument('--output', help='Optional fresh offline HTML report')
+    r = sub.add_parser('network-study-demo', help='Write a synthetic paired HAR experiment and interactive report')
+    r.add_argument('--directory', required=True)
+    r.add_argument('--output', required=True)
     sub.add_parser('doctor', help='Show native capture capabilities')
     return p
 
@@ -89,6 +113,31 @@ def main(argv=None):
         for output in (getattr(args, 'output', None), getattr(args, 'trace_output', None)):
             if output and (Path(output).exists() or Path(output).is_symlink()):
                 raise ValueError('Output already exists; choose a fresh filename')
+        if args.action == 'network-plan':
+            manifest = network_study.plan(args.title, args.workload, args.browser, args.cache, args.network, **{key: getattr(args, key) for key in ('baseline', 'candidate', 'metric', 'pairs', 'seed', 'page')})
+            network_study.save(manifest, args.output)
+            print('Network protocol saved: ' + args.output)
+            print('Run reclaimlab network-next with this manifest; export each fresh HAR manually in the displayed order.')
+            return 0
+        if args.action == 'network-next':
+            slot = network_study.next_capture(args.manifest)
+            print(json.dumps(slot or {'complete': True, 'instructions': 'All files exist; run network-study to audit them.'}, indent=2))
+            return 0
+        if args.action in {'network-study', 'network-study-demo'}:
+            if args.action == 'network-study-demo':
+                result = network_study.evaluate(network_study.write_demo(args.directory))
+            else:
+                result = network_study.evaluate(args.manifest, args.iterations, args.seed, args.max_growth)
+            if args.output: create_network_study(result, args.output)
+            if getattr(args, 'json', False): print(json.dumps(result, indent=2, allow_nan=False))
+            else:
+                print(('Synthetic demonstration: ' if result['synthetic'] else '') + result['verdict'])
+                print(f"Compatible pairs: {result['valid_pairs']}/{result['planned_pairs']}; mean change: {result['mean_delta']} {result['unit']}")
+                print(f"Descriptive paired-bootstrap interval: {result['bootstrap_interval95']}; growth gate: {result['gate']['state']}")
+                for reason in result['incompatible'] + result['context']: print('- ' + reason)
+                if args.output: print('Offline experiment report saved: ' + args.output)
+                print(result['interpretation'])
+            return result['exit_code']
         if args.action == 'record':
             result = record(args.output, args.seconds, args.interval, args.label, args.processes, args.interactive, workload=args.workload)
             print(f"Saved {result['samples']} samples: {args.output}")

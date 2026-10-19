@@ -42,3 +42,7 @@ def create_study(result, output):
 
 def create_network(result, output):
     return write_document(result, 'Browser network report', output, 'network_template.html')
+
+
+def create_network_study(result, output):
+    return write_document(result, result['title'], output, 'network_study_template.html')

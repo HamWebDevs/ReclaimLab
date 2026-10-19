@@ -29,6 +29,8 @@ jobs:
         working-directory: ${{ runner.temp }}
       - run: reclaimlab har-demo --output reclaimlab-network.html
         working-directory: ${{ runner.temp }}
+      - run: reclaimlab network-study-demo --directory synthetic-network-study --output reclaimlab-network-study.html
+        working-directory: ${{ runner.temp }}
       - uses: actions/upload-artifact@v4
         with:
           name: demo-${{ runner.os }}-${{ matrix.python }}
@@ -36,6 +38,7 @@ jobs:
             ${{ runner.temp }}/reclaimlab-demo.html
             ${{ runner.temp }}/reclaimlab-study.html
             ${{ runner.temp }}/reclaimlab-network.html
+            ${{ runner.temp }}/reclaimlab-network-study.html
   browser-report:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -63,7 +66,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: HamWebDevs/DevPocket
-          ref: 07a5ba0a4dc64083492a587f8bf2a72dc3331459
+          ref: a667465b0af375cf6336da58f589d874bd070891
           path: .integration-host
       - uses: actions/setup-python@v5
         with:

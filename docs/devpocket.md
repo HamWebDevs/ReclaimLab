@@ -2,7 +2,7 @@
 
 [Back to ReclaimLab](../README.md)
 
-ReclaimLab publishes optional `reclaimlab`, `reclaimlab-study` and `reclaimlab-har` entry points in the `devpocket.tools` group. Standalone use does not import or require DevPocket. All three use API v1, work uncached on DevPocket 0.3 and opt into result caching on 0.4+. The combined AssetGuard workflow additionally requires DevPocket 0.5+.
+ReclaimLab publishes optional `reclaimlab`, `reclaimlab-study`, `reclaimlab-har` and `reclaimlab-network-study` entry points in the `devpocket.tools` group. Standalone use does not import or require DevPocket. All four use API v1, work uncached on DevPocket 0.3 and opt into result caching on 0.4+. AssetGuard additionally requires DevPocket 0.5+; workspace orchestration requires 0.6+.
 
 Install both repositories in the same environment. DevPocket is not assumed to exist on PyPI:
 
@@ -13,6 +13,7 @@ devpocket plugins list
 devpocket plugins enable reclaimlab
 devpocket plugins enable reclaimlab-study
 devpocket plugins enable reclaimlab-har
+devpocket plugins enable reclaimlab-network-study
 ```
 
 From the project containing a saved trace:
@@ -22,6 +23,7 @@ devpocket run reclaimlab --input '{"trace":"before.jsonl"}' --format json
 devpocket run reclaimlab --input '{"trace":"before.jsonl"}' --format sarif
 devpocket run reclaimlab-study --input '{"manifest":"trial/study.json"}' --format json
 devpocket run reclaimlab-har --input '{"capture":"artifacts/page.har","max_errors":0}' --format sarif
+devpocket run reclaimlab-network-study --input '{"manifest":"trial/network-study.json","max_growth":0}' --format sarif
 ```
 
 The plugin resolves the trace under the project's root, analyses it and returns warning findings plus the complete structured summary. Warnings deliberately return gate status 1 by default. Use DevPocket's normal baseline/severity controls to choose your gate policy. There are no automatic recordings, settings changes or uploads.
@@ -77,4 +79,26 @@ The HAR plugin keeps aliases on, reads only a selected saved capture and returns
 
 Declare the capture file itself in `cache.inputs`. A changed HAR invalidates the result; budget inputs are also part of the cache key. To expose it over MCP, enable `reclaimlab-har` in the root config and add `--plugin reclaimlab-har` to `devpocket serve`.
 
-See the [browser network guide](browser-network.md) and [combined build/network configuration](../examples/web-checks.json). `python examples/verify_devpocket.py` exercises installed discovery, all three plugins, caches, content invalidation, SARIF, MCP and DevPocket 0.5's build auditor.
+See the [browser network guide](browser-network.md) and [combined build/network configuration](../examples/web-checks.json). `python examples/verify_devpocket.py` exercises installed discovery, all four plugins, caches, content invalidation, SARIF, MCP, AssetGuard and workspace orchestration.
+
+## Paired HAR experiment gates
+
+The `reclaimlab-network-study` adapter runs the complete [network-study audit](network-studies.md) and returns bounded pair summaries. Incompatible studies and failed/unknown configured growth gates return `ToolResult.exit_code=1` as well as error findings. Baselines or `--fail-on none` cannot turn an unverifiable growth gate into success. Complete studies without a budget are descriptive; consistently higher measurements add a warning finding.
+
+```json
+{
+  "version": 1,
+  "plugins": ["reclaimlab-network-study"],
+  "checks": {
+    "browser-experiment": {
+      "tool": "reclaimlab-network-study",
+      "input": {"manifest": "trial/network-study.json", "max_growth": 0},
+      "cache": {"inputs": ["trial"]}
+    }
+  }
+}
+```
+
+The declared input directory must contain the manifest and **all referenced HARs**. Invalid/failed gate results are not cached. A changed HAR invalidates a successful result. MCP exposure requires both project enablement and an explicit `--plugin reclaimlab-network-study`; it performs no capture, browser automation or writes.
+
+For DevPocket 0.6, put a finished-build check and browser-study check in separate project roots and make the browser project `needs` the build project in `.devpocket-workspace.json`. `devpocket workspace plan` reviews dependencies without importing plugins; `devpocket workspace check --format sarif` runs the selected checks with project-relative roots and one worker limit. This orders checks; it cannot prove that manual HAR exports came from that build.

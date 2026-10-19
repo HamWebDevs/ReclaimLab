@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 — 2026-10-19
+
+- Add balanced, seeded repeated browser-HAR protocols, read-only next-export guidance and a complete synthetic experiment demo.
+- Compare response-wait p95, captured response-body bytes, HTTP request counts or HTTP span using equal whole-pair weights and a seeded descriptive paired bootstrap.
+- Audit every planned capture for coverage, request failures, timing consistency, copied measurement payloads, browser metadata, chronological order, overlap and synthetic mixing. Incompatible/insufficient evidence blocks aggregation.
+- Add conservative optional growth gates: intervals and both capture-order means must satisfy the budget; unresolved evidence returns unknown and cannot pass CI.
+- Add an offline responsive experiment report with pair filters, delta charts, capture audit details, stable study totals and explicit limits of manual HAR evidence.
+- Discard private network fields, absolute timestamps and internal signatures from results. Bound protocol/total/per-HAR reads, refuse unsafe paths and observed mutations, and preserve exclusive output writes.
+- Add the fourth read-only API v1 DevPocket plugin, optional complete-input caching, MCP/SARIF integration and a combined build/network workspace verification using DevPocket 0.6.
+- Extend installed-wheel cross-platform smoke checks and real-Chromium desktop/mobile report QA. No runtime dependencies, browser automation, uploads or automatic tuning are added to the package.
+
 ## 0.3.0 — 2026-10-18
 
 - Add offline HAR 1.2 analysis with explicit page scoping, interval-union busy time, request concurrency, response-wait p95, size coverage and query-sensitive repeated GET groups.

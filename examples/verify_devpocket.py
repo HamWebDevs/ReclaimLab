@@ -1,4 +1,4 @@
-"""Explicit integration check; install ReclaimLab 0.3 and DevPocket 0.5 first."""
+"""Explicit integration check; install ReclaimLab 0.4 and DevPocket 0.6 first."""
 import json
 from pathlib import Path
 import subprocess
@@ -6,7 +6,7 @@ import sys
 import tempfile
 from reclaimlab.demo import synthetic, write_study
 from reclaimlab.trace import exclusive, write_row
-from reclaimlab import har
+from reclaimlab import har, network_study
 
 
 def command(args, cwd, expected=0, input=None):
@@ -26,9 +26,11 @@ def main():
         assert any(x['name']=='reclaimlab' and not x['enabled'] for x in inventory)
         assert any(x['name']=='reclaimlab-study' and not x['enabled'] for x in inventory)
         assert any(x['name']=='reclaimlab-har' and not x['enabled'] for x in inventory)
+        assert any(x['name']=='reclaimlab-network-study' and not x['enabled'] for x in inventory)
         command(['plugins','enable','reclaimlab'],root)
         command(['plugins','enable','reclaimlab-study'],root)
         command(['plugins','enable','reclaimlab-har'],root)
+        command(['plugins','enable','reclaimlab-network-study'],root)
         capture = har.synthetic()
         (root / 'demo.har').write_text(json.dumps(capture))
         har_input = {'capture': 'demo.har', 'max_errors': 0}
@@ -51,7 +53,13 @@ def main():
         result = json.loads(command(['run', 'reclaimlab-study', '--input', json.dumps(study_input), '--format', 'json'], root))
         assert result['data']['verdict'] == 'consistent lower measured wake delay'
         assert any(f['rule'] == 'study-synthetic' for f in result['findings'])
-        config = {'version': 1, 'plugins': ['reclaimlab', 'reclaimlab-study', 'reclaimlab-har'], 'checks': {'trace': {'tool': 'reclaimlab', 'input': {'trace': 'demo.jsonl'}, 'cache': {'inputs': ['demo.jsonl']}}, 'study': {'tool': 'reclaimlab-study', 'input': study_input, 'cache': {'inputs': ['trial']}}, 'network': {'tool': 'reclaimlab-har', 'input': har_input, 'cache': {'inputs': ['demo.har']}}}}
+        network_manifest = network_study.write_demo(root / 'network-trial')
+        paired_input = {'manifest': 'network-trial/network-study.json', 'iterations': 500, 'max_growth': 0}
+        paired = json.loads(command(['run', 'reclaimlab-network-study', '--input', json.dumps(paired_input), '--format', 'json'], root))
+        assert paired['data']['gate']['state'] == 'pass'
+        assert paired['data']['valid_pairs'] == 6
+        assert 'example.invalid' not in json.dumps(paired)
+        config = {'version': 1, 'plugins': ['reclaimlab', 'reclaimlab-study', 'reclaimlab-har', 'reclaimlab-network-study'], 'checks': {'trace': {'tool': 'reclaimlab', 'input': {'trace': 'demo.jsonl'}, 'cache': {'inputs': ['demo.jsonl']}}, 'study': {'tool': 'reclaimlab-study', 'input': study_input, 'cache': {'inputs': ['trial']}}, 'network': {'tool': 'reclaimlab-har', 'input': har_input, 'cache': {'inputs': ['demo.har']}}, 'paired-network': {'tool': 'reclaimlab-network-study', 'input': paired_input, 'cache': {'inputs': ['network-trial']}}}}
         (root / '.devpocket.json').write_text(json.dumps(config))
         first = json.loads(command(['check', '--format', 'json'], root, expected=1))
         reused = json.loads(command(['check', '--format', 'json'], root, expected=1))
@@ -71,8 +79,28 @@ def main():
         assert changed_study['cache']['status'] == 'miss'
         assert changed_study['data']['verdict'] == 'not comparable'
         selected.write_text(original)
-        messages=[{'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':'2025-11-25','capabilities':{},'clientInfo':{'name':'reclaimlab-test','version':'1'}}},{'jsonrpc':'2.0','method':'notifications/initialized'},{'jsonrpc':'2.0','id':2,'method':'tools/call','params':{'name':'reclaimlab','arguments':{'trace':'demo.jsonl'}}},{'jsonrpc':'2.0','id':3,'method':'tools/call','params':{'name':'reclaimlab-study','arguments':study_input}},{'jsonrpc':'2.0','id':4,'method':'tools/call','params':{'name':'reclaimlab-har','arguments':har_input}}]
-        result=command(['serve','--root',root,'--plugin','reclaimlab','--plugin','reclaimlab-study','--plugin','reclaimlab-har'],root,input=''.join(json.dumps(x)+'\n' for x in messages))
+        workspace = {'version': 1, 'projects': {'build': {'path': 'dist'}, 'browser': {'path': 'network-trial', 'needs': ['build']}}}
+        (root / '.devpocket-workspace.json').write_text(json.dumps(workspace))
+        (root / 'dist/.devpocket.json').write_text(json.dumps({'version': 1, 'checks': {'assets': {'tool': 'assetguard', 'input': {'path': '.', 'max_total_gzip_kib': 16}}}}))
+        (root / 'network-trial/.devpocket.json').write_text(json.dumps({'version': 1, 'plugins': ['reclaimlab-network-study'], 'checks': {'experiment': {'tool': 'reclaimlab-network-study', 'input': {**paired_input, 'manifest': 'network-study.json'}, 'cache': {'inputs': ['network-study.json', 'captures']}}}}))
+        plan = json.loads(command(['workspace', 'plan', '--format', 'json'], root))['data']
+        assert plan['levels'] == [['build/assets'], ['browser/experiment']]
+        combined = json.loads(command(['workspace', 'check', '--expect-plan', plan['plan_sha256'], '--format', 'json'], root))
+        assert [s['status'] for s in combined['checks']] == ['passed', 'passed']
+        combined_sarif = json.loads(command(['workspace', 'check', '--format', 'sarif'], root))
+        assert combined_sarif['runs'][0]['invocations'][0]['properties']['selectedProjects'] == ['build', 'browser']
+        assert any(f['properties']['project'] == 'browser' for f in combined_sarif['runs'][0]['results'])
+        paired_capture = next((network_manifest.parent / 'captures').glob('*-candidate.har'))
+        saved = paired_capture.read_text()
+        broken = json.loads(saved)
+        broken['log']['entries'][0]['timings']['wait'] = -1
+        paired_capture.write_text(json.dumps(broken))
+        invalidated = json.loads(command(['workspace', 'check', '--format', 'json', '--fail-on', 'none'], root, expected=1))
+        assert invalidated['checks'][1]['report']['cache']['status'] == 'miss'
+        assert invalidated['checks'][1]['report']['data']['gate']['state'] == 'unknown'
+        paired_capture.write_text(saved)
+        messages=[{'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':'2025-11-25','capabilities':{},'clientInfo':{'name':'reclaimlab-test','version':'1'}}},{'jsonrpc':'2.0','method':'notifications/initialized'},{'jsonrpc':'2.0','id':2,'method':'tools/call','params':{'name':'reclaimlab','arguments':{'trace':'demo.jsonl'}}},{'jsonrpc':'2.0','id':3,'method':'tools/call','params':{'name':'reclaimlab-study','arguments':study_input}},{'jsonrpc':'2.0','id':4,'method':'tools/call','params':{'name':'reclaimlab-har','arguments':har_input}},{'jsonrpc':'2.0','id':5,'method':'tools/call','params':{'name':'reclaimlab-network-study','arguments':paired_input}}]
+        result=command(['serve','--root',root,'--plugin','reclaimlab','--plugin','reclaimlab-study','--plugin','reclaimlab-har','--plugin','reclaimlab-network-study'],root,input=''.join(json.dumps(x)+'\n' for x in messages))
         replies={x['id']:x for x in map(json.loads,result.splitlines())}
         assert not replies[2]['result']['isError']
         assert len(replies[2]['result']['structuredContent']['findings'])>=3
@@ -80,7 +108,9 @@ def main():
         assert replies[3]['result']['structuredContent']['data']['valid_pairs'] == 6
         assert not replies[4]['result']['isError']
         assert replies[4]['result']['structuredContent']['data']['summary']['requests'] == 7
-        print('DevPocket trace/study/HAR discovery, AssetGuard, cached checks, content invalidation, SARIF and MCP integration passed.')
+        assert not replies[5]['result']['isError']
+        assert replies[5]['result']['structuredContent']['data']['gate']['state'] == 'pass'
+        print('DevPocket four-plugin discovery, AssetGuard, paired HAR gates, cached checks, content invalidation, workspace plans/SARIF and MCP integration passed.')
     return 0
 
 if __name__=='__main__':raise SystemExit(main())

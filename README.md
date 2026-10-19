@@ -7,11 +7,24 @@
 
 **A local performance lab for laptops and web applications.**
 
-Record a slowdown while doing your normal work, or inspect a saved browser network capture. See native scheduling/resource evidence, explore HTTP request waterfalls and run explicit performance budgets. Compare deliberate changes with repeatable laptop experiments and self-contained reports.
+Record a slowdown while doing your normal work, inspect saved browser networks, or compare repeated baseline/candidate HAR exports. See native scheduling/resource evidence, explore HTTP waterfalls and gate captured metric growth using whole paired runs. Share self-contained offline reports and connect the evidence to DevPocket checks.
 
 No account, background service, automatic tuning, telemetry or runtime dependencies. Capture supports **Windows and Linux**; analysis and reports also work on macOS.
 
-[Quick start](#quick-start) · [Browser network lab](docs/browser-network.md) · [Repeated studies](docs/studies.md) · [How it works](docs/methodology.md) · [Commands](docs/commands.md) · [DevPocket integration](docs/devpocket.md)
+[Quick start](#quick-start) · [Browser network lab](docs/browser-network.md) · [Browser experiments](docs/network-studies.md) · [Laptop studies](docs/studies.md) · [Commands](docs/commands.md) · [DevPocket integration](docs/devpocket.md)
+
+## Check whether a web change holds up across runs
+
+```bash
+reclaimlab network-study-demo --directory browser-trial --output browser-trial.html
+# For your own captures, declare the task, context, primary metric and conditions first.
+reclaimlab network-plan --workload "Same dashboard navigation" --browser "Fixed browser/profile" --cache "Fresh cache" --network "Fixed throttling" --output trial/network-study.json
+reclaimlab network-next trial/network-study.json
+# Apply the displayed condition and export each fresh HAR manually in the planned order.
+reclaimlab network-study trial/network-study.json --max-growth 0 --output experiment.html
+```
+
+Balanced capture orders, equal pair weights, coverage/error audits and descriptive paired-bootstrap intervals make uncertainty visible. Missing captures, copied measurement payloads, overlapping runs and unknown required metrics cannot pass a configured growth budget. Compare response-wait p95, captured body bytes, request counts or HTTP span. [Protocol, CI gates and interpretation →](docs/network-studies.md)
 
 ## Find the next question in a browser network capture
 

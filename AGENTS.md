@@ -15,3 +15,6 @@
 - Study plugins remain compatible with DevPocket API v1; only host 0.4+ provides optional caching. Declare every referenced capture in cache inputs.
 - HAR exports keep only allowlisted measurements; discard headers/cookies/bodies/query/userinfo before returning report data. Preserve default aliases and explicit origin/path opt-in.
 - HAR missing/-1 values remain unknown, TLS stays inside connect, multi-page scope is explicit and incomplete measurements cannot pass dependent budgets. Keep the HAR plugin read-only and its model-facing data compact.
+- Network studies resample whole paired HAR runs, audit every planned pair and both capture orders, and gate interval/order-group growth conservatively. Incomplete data or uncertainty must never pass a configured budget.
+- HAR experiment declarations/hashes are not capture authentication or revision binding. Discard absolute timestamps, browser identities and measurement signatures after internal consistency audits; never claim causality.
+- Cache a network study only with its manifest and all referenced HARs covered. Verify the installed fourth plugin and cross-project workspace workflow, plus both network report interfaces in real-browser CI.
