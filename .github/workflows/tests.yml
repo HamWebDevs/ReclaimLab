@@ -66,7 +66,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: HamWebDevs/DevPocket
-          ref: a667465b0af375cf6336da58f589d874bd070891
+          ref: fba52c59dea909c6059c91f29e941ab7829be156
           path: .integration-host
       - uses: actions/setup-python@v5
         with:

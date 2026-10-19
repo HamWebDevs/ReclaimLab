@@ -162,9 +162,9 @@ class TraceTests(TempTest):
         self.assertEqual(path.read_text(),'keep')
 
     def test_bad_schema_and_nonfinite_data_rejected(self):
-        for mutate in (lambda t:t['header'].update(schema=2),lambda t:t['samples'][0].update(t=-1),lambda t:t['samples'][0]['metrics'].update(cpu_pct=101),lambda t:t['samples'][0]['metrics'].update(power=[])):
+        for index, mutate in enumerate((lambda t:t['header'].update(schema=2),lambda t:t['samples'][0].update(t=-1),lambda t:t['samples'][0]['metrics'].update(cpu_pct=101),lambda t:t['samples'][0]['metrics'].update(power=[]))):
             trace=synthetic();mutate(trace)
-            path=self.save(trace,name='bad'+str(id(trace))+'.jsonl')
+            path=self.save(trace,name='bad'+str(index)+'.jsonl')
             with self.assertRaises(ValueError):load(path)
 
     def test_missing_footer_is_flagged_not_hidden(self):
