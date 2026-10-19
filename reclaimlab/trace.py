@@ -6,6 +6,7 @@ import math
 import os
 import re
 from pathlib import Path
+from .jsonio import loads
 
 MAX_BYTES = 128 * 1024 * 1024
 MAX_RECORDS = 200000
@@ -57,7 +58,7 @@ def load(path):
             if index == MAX_RECORDS or len(raw.encode()) > 1024 * 1024:
                 raise ValueError("Trace exceeds record or line limits")
             try:
-                row = json.loads(raw)
+                row = loads(raw)
             except (ValueError, RecursionError) as exc:
                 raise ValueError(f"Invalid JSON at trace line {index + 1}") from exc
             if not isinstance(row, dict) or not isinstance(row.get("type"), str):

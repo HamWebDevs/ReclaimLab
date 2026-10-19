@@ -18,3 +18,11 @@
 - Network studies resample whole paired HAR runs, audit every planned pair and both capture orders, and gate interval/order-group growth conservatively. Incomplete data or uncertainty must never pass a configured budget.
 - HAR experiment declarations/hashes are not capture authentication or revision binding. Discard absolute timestamps, browser identities and measurement signatures after internal consistency audits; never claim causality.
 - Cache a network study only with its manifest and all referenced HARs covered. Verify the installed fourth plugin and cross-project workspace workflow, plus both network report interfaces in real-browser CI.
+
+## Version 1 contracts
+
+- Keep trace/protocol schema 1 and network-bundle format 1 readable. Test the frozen bundle fixture independently of the current exporter.
+- Bundle exports must withhold original descriptive/private fields, shift all dates together and refuse transformation if audit/gate evidence changes.
+- Verification must remain in memory: no archive extraction, target code, temporary capture files or uploads. Enforce archive/member/JSON limits, canonical field checks, checksums and fresh evidence comparison.
+- Read-only bundle integration declares only the archive as its complete cache file input. Preserve unknown/failed operational gates independently of baselines and verify the fifth plugin over CLI, cache, SARIF and MCP.
+- Extend real-browser QA to the verified-bundle metadata/report view and verify the installed wheel outside the checkout.

@@ -71,4 +71,4 @@ Inputs are bounded: 256 KiB protocol, 128 MiB total HAR bytes, 32 MiB per HAR, u
 
 ## Connect the result to project checks
 
-Install both packages in the same environment and enable `reclaimlab-network-study` explicitly. See the [four-plugin guide](devpocket.md). Cache only with the protocol **and every referenced HAR** declared as inputs. DevPocket 0.6 workspaces can make browser evidence depend on finished-build checks and combine both projects into one SARIF report; neither command automatically builds or captures the target application.
+Install both packages in the same environment and enable `reclaimlab-network-study` explicitly. See the [five-plugin guide](devpocket.md). Cache only with the protocol **and every referenced HAR** declared as inputs. DevPocket 1.x workspaces can make browser evidence depend on finished-build checks and combine both projects into one SARIF report; neither command automatically builds or captures the target application.

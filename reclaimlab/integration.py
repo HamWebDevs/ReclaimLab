@@ -88,3 +88,22 @@ def build_network_study_tool():
     options = {'cache_version': 'network-study-v1'} if 'cache_version' in ToolSpec.__dataclass_fields__ else {}
     properties = {'manifest': {'type': 'string', 'maxLength': 4096}, 'iterations': {'type': 'integer', 'minimum': 500, 'maximum': 10000}, 'seed': {'type': 'integer', 'minimum': 0, 'maximum': 4294967295}, 'max_growth': {'type': 'number', 'minimum': 0, 'maximum': 1000000000000}}
     return ToolSpec(name='reclaimlab-network-study', description='Audit paired HAR exports, run whole-pair descriptive bootstraps and gate captured metric growth', input_schema={'type': 'object', 'properties': properties, 'required': ['manifest'], 'additionalProperties': False}, run=inspect_network_study, read_only=True, **options)
+
+
+def inspect_bundle(context, params):
+    from devpocket.sdk import Finding, ToolResult
+    from .bundle import verify
+    if (context.root / params['bundle']).is_symlink():
+        raise ValueError('Bundle cannot be a symlink')
+    path = context.resolve(params['bundle'])
+    result = verify(path, max_growth=params.get('max_growth'))
+    location = path.relative_to(context.root).as_posix()
+    findings = [Finding('bundle-result', 'Verified measurement bundle: ' + result['verdict'], severity='error' if result['exit_code'] else 'note', path=location, help=result['bundle']['interpretation'])]
+    if result['synthetic']: findings.append(Finding('bundle-synthetic', 'Synthetic demonstration data', severity='note', path=location))
+    return ToolResult('Verified portable experiment: ' + result['verdict'], findings, result, exit_code=result['exit_code'])
+
+
+def build_bundle_tool():
+    from devpocket.sdk import ToolSpec
+    options = {'cache_version': 'bundle-format1-v1'} if 'cache_version' in ToolSpec.__dataclass_fields__ else {}
+    return ToolSpec(name='reclaimlab-bundle', description='Verify and reanalyse a bounded measurement-only experiment bundle without uploads, extraction or execution', input_schema={'type': 'object', 'properties': {'bundle': {'type': 'string', 'maxLength': 4096}, 'max_growth': {'type': 'number', 'minimum': 0, 'maximum': 1000000000000}}, 'required': ['bundle'], 'additionalProperties': False}, run=inspect_bundle, read_only=True, **options)

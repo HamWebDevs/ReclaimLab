@@ -1,4 +1,4 @@
-"""Explicit integration check; install ReclaimLab 0.4 and DevPocket 0.6 first."""
+"""Explicit integration check; install ReclaimLab 1.x and DevPocket 1.x first."""
 import json
 from pathlib import Path
 import subprocess
@@ -6,7 +6,7 @@ import sys
 import tempfile
 from reclaimlab.demo import synthetic, write_study
 from reclaimlab.trace import exclusive, write_row
-from reclaimlab import har, network_study
+from reclaimlab import bundle, har, network_study
 
 
 def command(args, cwd, expected=0, input=None):
@@ -27,10 +27,12 @@ def main():
         assert any(x['name']=='reclaimlab-study' and not x['enabled'] for x in inventory)
         assert any(x['name']=='reclaimlab-har' and not x['enabled'] for x in inventory)
         assert any(x['name']=='reclaimlab-network-study' and not x['enabled'] for x in inventory)
+        assert any(x['name']=='reclaimlab-bundle' and not x['enabled'] for x in inventory)
         command(['plugins','enable','reclaimlab'],root)
         command(['plugins','enable','reclaimlab-study'],root)
         command(['plugins','enable','reclaimlab-har'],root)
         command(['plugins','enable','reclaimlab-network-study'],root)
+        command(['plugins','enable','reclaimlab-bundle'],root)
         capture = har.synthetic()
         (root / 'demo.har').write_text(json.dumps(capture))
         har_input = {'capture': 'demo.har', 'max_errors': 0}
@@ -59,27 +61,44 @@ def main():
         assert paired['data']['gate']['state'] == 'pass'
         assert paired['data']['valid_pairs'] == 6
         assert 'example.invalid' not in json.dumps(paired)
+        bundle.create(network_manifest, root / 'experiment.rlb', iterations=500, max_growth=0)
+        bundle_input = {'bundle': 'experiment.rlb', 'max_growth': 0}
+        portable = json.loads(command(['run', 'reclaimlab-bundle', '--input', json.dumps(bundle_input), '--format', 'json'], root))
+        assert portable['data']['bundle']['integrity'] == 'verified'
         config = {'version': 1, 'plugins': ['reclaimlab', 'reclaimlab-study', 'reclaimlab-har', 'reclaimlab-network-study'], 'checks': {'trace': {'tool': 'reclaimlab', 'input': {'trace': 'demo.jsonl'}, 'cache': {'inputs': ['demo.jsonl']}}, 'study': {'tool': 'reclaimlab-study', 'input': study_input, 'cache': {'inputs': ['trial']}}, 'network': {'tool': 'reclaimlab-har', 'input': har_input, 'cache': {'inputs': ['demo.har']}}, 'paired-network': {'tool': 'reclaimlab-network-study', 'input': paired_input, 'cache': {'inputs': ['network-trial']}}}}
         (root / '.devpocket.json').write_text(json.dumps(config))
-        first = json.loads(command(['check', '--format', 'json'], root, expected=1))
-        reused = json.loads(command(['check', '--format', 'json'], root, expected=1))
+        config['plugins'].append('reclaimlab-bundle')
+        config['checks']['bundle'] = {'tool': 'reclaimlab-bundle', 'input': bundle_input, 'cache': {'inputs': ['experiment.rlb']}}
+        (root / '.devpocket.json').write_text(json.dumps(config))
+        preflight = json.loads(command(['config', 'validate', '--format', 'json'], root))
+        assert preflight['data']['plugin_inputs_unverified'] == 5
+        # Reuse assertions are serialized; parallel execution is exercised below.
+        # Storage contention may safely bypass an optional cache on Windows.
+        first = json.loads(command(['check', '--jobs', '1', '--format', 'json'], root, expected=1))
+        reused = json.loads(command(['check', '--jobs', '1', '--format', 'json'], root, expected=1))
         cache_states = lambda report: {s['name']: s['report'].get('cache') for s in report['checks']}
         assert all(s['report']['cache']['status'] == 'miss' for s in first['checks']), cache_states(first)
         assert all(s['report']['cache']['status'] == 'hit' for s in reused['checks']), cache_states(reused)
         capture['log']['entries'][-1]['response']['status'] = 200
         (root / 'demo.har').write_text(json.dumps(capture))
-        updated = json.loads(command(['check', '--format', 'json'], root, expected=1))
+        updated = json.loads(command(['check', '--jobs', '1', '--format', 'json'], root, expected=1))
         network = next(s for s in updated['checks'] if s['name'] == 'network')['report']
         assert network['cache']['status'] == 'miss'
         assert network['data']['verdict'] == 'within budgets'
         selected = next((manifest.parent / 'captures').glob('*-candidate.jsonl'))
         original = selected.read_text()
         selected.write_text(original.replace('synthetic repeated workload', 'different workload'))
-        changed = json.loads(command(['check', '--format', 'json'], root, expected=1))
+        changed = json.loads(command(['check', '--jobs', '1', '--format', 'json'], root, expected=1))
         changed_study = next(s for s in changed['checks'] if s['name'] == 'study')['report']
         assert changed_study['cache']['status'] == 'miss'
         assert changed_study['data']['verdict'] == 'not comparable'
         selected.write_text(original)
+        bundle.create(network_manifest, root / 'updated.rlb', iterations=600, max_growth=0)
+        (root / 'experiment.rlb').write_bytes((root / 'updated.rlb').read_bytes())
+        changed_bundle = json.loads(command(['check', '--jobs', '1', '--format', 'json'], root, expected=1))
+        portable = next(s['report'] for s in changed_bundle['checks'] if s['name'] == 'bundle')
+        assert portable['cache']['status'] == 'miss'
+        assert portable['data']['bundle']['integrity'] == 'verified'
         workspace = {'version': 1, 'projects': {'build': {'path': 'dist'}, 'browser': {'path': 'network-trial', 'needs': ['build']}}}
         (root / '.devpocket-workspace.json').write_text(json.dumps(workspace))
         (root / 'dist/.devpocket.json').write_text(json.dumps({'version': 1, 'checks': {'assets': {'tool': 'assetguard', 'input': {'path': '.', 'max_total_gzip_kib': 16}}}}))
@@ -100,8 +119,8 @@ def main():
         assert invalidated['checks'][1]['report']['cache']['status'] == 'miss'
         assert invalidated['checks'][1]['report']['data']['gate']['state'] == 'unknown'
         paired_capture.write_text(saved)
-        messages=[{'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':'2025-11-25','capabilities':{},'clientInfo':{'name':'reclaimlab-test','version':'1'}}},{'jsonrpc':'2.0','method':'notifications/initialized'},{'jsonrpc':'2.0','id':2,'method':'tools/call','params':{'name':'reclaimlab','arguments':{'trace':'demo.jsonl'}}},{'jsonrpc':'2.0','id':3,'method':'tools/call','params':{'name':'reclaimlab-study','arguments':study_input}},{'jsonrpc':'2.0','id':4,'method':'tools/call','params':{'name':'reclaimlab-har','arguments':har_input}},{'jsonrpc':'2.0','id':5,'method':'tools/call','params':{'name':'reclaimlab-network-study','arguments':paired_input}}]
-        result=command(['serve','--root',root,'--plugin','reclaimlab','--plugin','reclaimlab-study','--plugin','reclaimlab-har','--plugin','reclaimlab-network-study'],root,input=''.join(json.dumps(x)+'\n' for x in messages))
+        messages=[{'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':'2025-11-25','capabilities':{},'clientInfo':{'name':'reclaimlab-test','version':'1'}}},{'jsonrpc':'2.0','method':'notifications/initialized'},{'jsonrpc':'2.0','id':2,'method':'tools/call','params':{'name':'reclaimlab','arguments':{'trace':'demo.jsonl'}}},{'jsonrpc':'2.0','id':3,'method':'tools/call','params':{'name':'reclaimlab-study','arguments':study_input}},{'jsonrpc':'2.0','id':4,'method':'tools/call','params':{'name':'reclaimlab-har','arguments':har_input}},{'jsonrpc':'2.0','id':5,'method':'tools/call','params':{'name':'reclaimlab-network-study','arguments':paired_input}},{'jsonrpc':'2.0','id':6,'method':'tools/call','params':{'name':'reclaimlab-bundle','arguments':bundle_input}}]
+        result=command(['serve','--root',root,'--plugin','reclaimlab','--plugin','reclaimlab-study','--plugin','reclaimlab-har','--plugin','reclaimlab-network-study','--plugin','reclaimlab-bundle'],root,input=''.join(json.dumps(x)+'\n' for x in messages))
         replies={x['id']:x for x in map(json.loads,result.splitlines())}
         assert not replies[2]['result']['isError']
         assert len(replies[2]['result']['structuredContent']['findings'])>=3
@@ -111,7 +130,9 @@ def main():
         assert replies[4]['result']['structuredContent']['data']['summary']['requests'] == 7
         assert not replies[5]['result']['isError']
         assert replies[5]['result']['structuredContent']['data']['gate']['state'] == 'pass'
-        print('DevPocket four-plugin discovery, AssetGuard, paired HAR gates, cached checks, content invalidation, workspace plans/SARIF and MCP integration passed.')
+        assert not replies[6]['result']['isError']
+        assert replies[6]['result']['structuredContent']['data']['bundle']['integrity'] == 'verified'
+        print('DevPocket five-plugin discovery, AssetGuard, paired HAR gates, cached checks, content invalidation, workspace plans/SARIF and MCP integration passed.')
     return 0
 
 if __name__=='__main__':raise SystemExit(main())

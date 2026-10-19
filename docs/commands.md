@@ -1,5 +1,9 @@
 # Commands
 
+## Portable measurement bundles (1.0+)
+
+`bundle create MANIFEST --output experiment.rlb` writes an exclusive measurement-only archive after verifying that the field/time transformation preserves analysis. `bundle verify FILE --output verified.html --json` checks its inventory and evidence, reanalyses in memory and generates a fresh report. An optional `--max-growth` reapplies your chosen budget without changing the archive. See [format, privacy, bounds and gate statuses](bundles.md).
+
 ## Repeated browser experiments (0.4+)
 
 `network-plan` declares one primary metric, manual capture context and a balanced pair schedule. `network-next MANIFEST` shows the next manual export. `network-study MANIFEST --max-growth AMOUNT --output report.html --json` audits the exports, compares whole paired runs and gates uncertainty conservatively. `network-study-demo --directory fresh-demo --output demo.html` creates labelled synthetic inputs and an offline report. See [all options, metric units and exit codes](network-studies.md).

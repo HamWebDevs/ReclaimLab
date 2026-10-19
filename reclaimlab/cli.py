@@ -11,7 +11,7 @@ from .experiment import compare
 from .native import collector
 from .record import record
 from .report import create, create_study, create_network, create_network_study
-from . import har, study, network_study
+from . import bundle, har, study, network_study
 from .trace import exclusive, load, write_row
 
 def parser():
@@ -104,6 +104,20 @@ def parser():
     r = sub.add_parser('network-study-demo', help='Write a synthetic paired HAR experiment and interactive report')
     r.add_argument('--directory', required=True)
     r.add_argument('--output', required=True)
+    b = sub.add_parser('bundle', help='Create or verify a portable measurement-only browser experiment')
+    actions = b.add_subparsers(dest='bundle_action', required=True)
+    r = actions.add_parser('create', help='Withhold descriptions/private HAR fields, shift dates and verify preserved measurements')
+    r.add_argument('manifest')
+    r.add_argument('--iterations', type=int, default=2000)
+    r.add_argument('--seed', type=int, default=0)
+    r.add_argument('--max-growth', type=float)
+    r.add_argument('--output', required=True, help='Fresh .rlb archive; never overwritten')
+    r.add_argument('--json', action='store_true')
+    r = actions.add_parser('verify', help='Check bounded archive contents and reanalyse; never extract or execute archive code')
+    r.add_argument('bundle')
+    r.add_argument('--max-growth', type=float, help='Override the stored growth budget for fresh verified analysis')
+    r.add_argument('--output', help='Fresh offline report generated from verified reanalysis')
+    r.add_argument('--json', action='store_true')
     sub.add_parser('doctor', help='Show native capture capabilities')
     return p
 
@@ -113,6 +127,20 @@ def main(argv=None):
         for output in (getattr(args, 'output', None), getattr(args, 'trace_output', None)):
             if output and (Path(output).exists() or Path(output).is_symlink()):
                 raise ValueError('Output already exists; choose a fresh filename')
+        if args.action == 'bundle':
+            if args.bundle_action == 'create':
+                result = bundle.create(args.manifest, args.output, iterations=args.iterations, seed=args.seed, max_growth=args.max_growth)
+                print(json.dumps(result, indent=2, allow_nan=False) if args.json else 'Measurement-only bundle saved: ' + args.output + '\nSHA-256: ' + result['sha256'] + '\n' + bundle.README.decode())
+                return 0
+            result = bundle.verify(args.bundle, max_growth=args.max_growth)
+            if args.output: create_network_study(result, args.output)
+            if args.json: print(json.dumps(result, indent=2, allow_nan=False))
+            else:
+                print('Bundle integrity verified; ' + result['verdict'])
+                print('Growth gate: ' + result['gate']['state'])
+                print(result['bundle']['interpretation'])
+                if args.output: print('Fresh verified report saved: ' + args.output)
+            return result['exit_code']
         if args.action == 'network-plan':
             manifest = network_study.plan(args.title, args.workload, args.browser, args.cache, args.network, **{key: getattr(args, key) for key in ('baseline', 'candidate', 'metric', 'pairs', 'seed', 'page')})
             network_study.save(manifest, args.output)

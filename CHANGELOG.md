@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.0 — 2026-10-19
+
+- Establish supported 1.x file/CLI meanings, platform boundaries and SDK API v1 integration contracts, with an explicit upgrade guide.
+- Add portable format-v1 browser-experiment bundles with allowlisted measurements, withheld descriptions/URLs/private HAR fields/browser identities, shifted dates, canonical members and SHA-256 inventory checks.
+- Refuse export if transformation changes paired measurements, audit blockers, uncertainty or gates; retain unknowns, request errors, synthetic mixing and capture-order problems honestly.
+- Verify bundle structure/checksums and reanalyse entirely in memory without extraction, temporary capture files, target execution or uploads. Compare a frozen evidence contract independently of report presentation fields.
+- Add `bundle create`, `bundle verify`, fresh budget overrides, verified report metadata and the fifth read-only DevPocket plugin. One archive is a complete declared cache input; invalid integrity or unknown/failed gates cannot be suppressed by baselines.
+- Bound compressed/decompressed bytes, members, JSON depth/keys, capture windows and metadata; refuse traversal, duplicate names, special files, unexpected fields and unsupported ZIP envelopes.
+- Add a frozen format-v1 fixture, privacy/tamper/compatibility tests, installed five-plugin CI and desktop/mobile Chromium checks for verified-bundle reports. Preserve zero runtime dependencies and all existing native/HAR workflows.
+
 ## 0.4.0 — 2026-10-19
 
 - Add balanced, seeded repeated browser-HAR protocols, read-only next-export guidance and a complete synthetic experiment demo.

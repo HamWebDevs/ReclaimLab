@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
+from .jsonio import loads
 from .analysis import quantile
 
 MAX_BYTES = 32 * 1024 * 1024
@@ -231,7 +232,7 @@ def load(path, **options):
     if len(payload) > MAX_BYTES:
         raise ValueError("HAR exceeds 32 MiB; export a smaller capture")
     try:
-        data = json.loads(payload)
+        data = loads(payload)
     except (ValueError, UnicodeError, RecursionError) as exc:
         raise ValueError("Invalid HAR JSON") from exc
     return analyse(data, **options)

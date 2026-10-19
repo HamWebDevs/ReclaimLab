@@ -9,6 +9,7 @@ from pathlib import Path
 import random
 from statistics import fmean
 
+from .jsonio import loads
 from . import har
 from .analysis import quantile
 from .study import CONDITIONS, PAIR_ID, relative_path, resolve, schedule
@@ -94,7 +95,7 @@ def read(path):
         raise ValueError('Network protocol must be a regular file')
     with path.open('rb') as stream: payload = stream.read(MAX_MANIFEST + 1)
     if len(payload) > MAX_MANIFEST: raise ValueError('Network protocol exceeds 256 KiB')
-    return validate(json.loads(payload))
+    return validate(loads(payload))
 
 
 def fingerprint(value):
@@ -112,7 +113,7 @@ def next_capture(path):
 
 
 def measure(payload, manifest):
-    raw = json.loads(payload)
+    raw = loads(payload)
     report = har.analyse(raw, page=manifest.get('page'))
     summary, rows = report['summary'], report['requests']
     issues = []
@@ -141,11 +142,15 @@ def measure(payload, manifest):
     return {'value': value, 'summary': summary, 'synthetic': report['synthetic'], 'issues': issues, '_first': first, '_end': first + (summary['span_ms'] or summary['known_span_ms']), '_signature': signature, '_browser': fingerprint({k: browser[k] for k in ('name', 'version')}) if browser else None}
 
 
-def evaluate(path, iterations=2000, seed=0, max_growth=None):
+def validate_options(iterations, seed, max_growth):
     if type(iterations) is not int or not 500 <= iterations <= 10000 or type(seed) is not int or not 0 <= seed < 2**32:
         raise ValueError('Use 500..10000 bootstrap iterations and a 32-bit nonnegative seed')
     if max_growth is not None and (type(max_growth) not in {int, float} or not math.isfinite(max_growth) or not 0 <= max_growth <= 1e12):
         raise ValueError('Maximum growth must be a finite nonnegative amount in the primary metric units')
+
+
+def evaluate(path, iterations=2000, seed=0, max_growth=None):
+    validate_options(iterations, seed, max_growth)
     manifest = read(path)
     base = Path(path).resolve().parent
     slots = schedule(manifest)
@@ -182,6 +187,32 @@ def evaluate(path, iterations=2000, seed=0, max_growth=None):
             raise
         except (ValueError, OSError, TypeError, KeyError, RecursionError):
             captures[name] = {'value': None, 'summary': None, 'synthetic': False, 'issues': ['Invalid HAR or incompatible page scope']}
+    return summarize(manifest, captures, iterations, seed, max_growth)
+
+
+def evaluate_memory(manifest, payloads, iterations=2000, seed=0, max_growth=None):
+    """Internal bounded in-memory path for verified bundles; performs no file writes."""
+    validate_options(iterations, seed, max_growth)
+    validate(manifest)
+    expected = {slot["path"] for slot in schedule(manifest)}
+    if not isinstance(payloads, dict) or set(payloads) - expected or any(not isinstance(p, bytes) for p in payloads.values()):
+        raise ValueError("In-memory study requires only the planned capture byte payloads")
+    if sum(map(len, payloads.values())) > MAX_BYTES or any(len(p) > har.MAX_BYTES for p in payloads.values()):
+        raise ValueError("In-memory study exceeds HAR input bounds")
+    captures = {}
+    for name in expected:
+        if name not in payloads:
+            captures[name] = {"value": None, "summary": None, "synthetic": False, "issues": ["Missing, unsafe or oversized HAR capture"]}
+            continue
+        try:
+            captures[name] = measure(payloads[name], manifest)
+        except (ValueError, TypeError, KeyError, RecursionError):
+            captures[name] = {"value": None, "summary": None, "synthetic": False, "issues": ["Invalid HAR or incompatible page scope"]}
+    return summarize(manifest, captures, iterations, seed, max_growth)
+
+
+def summarize(manifest, captures, iterations, seed, max_growth):
+    slots = schedule(manifest)
     signatures = {}
     previous_end, previous_name = None, None
     for slot in slots:

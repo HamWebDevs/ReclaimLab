@@ -1,8 +1,10 @@
 # DevPocket integration
 
+ReclaimLab 1.x adds the fifth read-only plugin, `reclaimlab-bundle`. It verifies and reanalyses a portable `.rlb` artifact entirely in memory and supports complete-input caching with just that file. [Configuration and CI example](bundles.md#devpocket-and-ci). Existing trace/study/HAR/network-study names remain unchanged. Installed integration checks use DevPocket 1.x and verify all five plugins, preflight, cached invalidation, workspace reports and MCP.
+
 [Back to ReclaimLab](../README.md)
 
-ReclaimLab publishes optional `reclaimlab`, `reclaimlab-study`, `reclaimlab-har` and `reclaimlab-network-study` entry points in the `devpocket.tools` group. Standalone use does not import or require DevPocket. All four use API v1, work uncached on DevPocket 0.3 and opt into result caching on 0.4+. AssetGuard additionally requires DevPocket 0.5+; workspace orchestration requires 0.6+.
+ReclaimLab publishes `reclaimlab`, `reclaimlab-study`, `reclaimlab-har`, `reclaimlab-network-study` and `reclaimlab-bundle` entry points in the `devpocket.tools` group. Standalone use does not import or require DevPocket. All five use API v1 and omit optional cache fields on older API v1 hosts. AssetGuard requires DevPocket 0.5+; workspace orchestration requires 0.6+; the combined verification script uses DevPocket 1.x configuration preflight.
 
 Install both repositories in the same environment. DevPocket is not assumed to exist on PyPI:
 
@@ -14,6 +16,7 @@ devpocket plugins enable reclaimlab
 devpocket plugins enable reclaimlab-study
 devpocket plugins enable reclaimlab-har
 devpocket plugins enable reclaimlab-network-study
+devpocket plugins enable reclaimlab-bundle
 ```
 
 From the project containing a saved trace:
@@ -79,7 +82,7 @@ The HAR plugin keeps aliases on, reads only a selected saved capture and returns
 
 Declare the capture file itself in `cache.inputs`. A changed HAR invalidates the result; budget inputs are also part of the cache key. To expose it over MCP, enable `reclaimlab-har` in the root config and add `--plugin reclaimlab-har` to `devpocket serve`.
 
-See the [browser network guide](browser-network.md) and [combined build/network configuration](../examples/web-checks.json). `python examples/verify_devpocket.py` exercises installed discovery, all four plugins, caches, content invalidation, SARIF, MCP, AssetGuard and workspace orchestration.
+See the [browser network guide](browser-network.md) and [combined build/network configuration](../examples/web-checks.json). `python examples/verify_devpocket.py` exercises installed discovery, all five plugins, caches, content invalidation, SARIF, MCP, AssetGuard and workspace orchestration.
 
 ## Paired HAR experiment gates
 
@@ -101,4 +104,4 @@ The `reclaimlab-network-study` adapter runs the complete [network-study audit](n
 
 The declared input directory must contain the manifest and **all referenced HARs**. Invalid/failed gate results are not cached. A changed HAR invalidates a successful result. MCP exposure requires both project enablement and an explicit `--plugin reclaimlab-network-study`; it performs no capture, browser automation or writes.
 
-For DevPocket 0.6, put a finished-build check and browser-study check in separate project roots and make the browser project `needs` the build project in `.devpocket-workspace.json`. `devpocket workspace plan` reviews dependencies without importing plugins; `devpocket workspace check --format sarif` runs the selected checks with project-relative roots and one worker limit. This orders checks; it cannot prove that manual HAR exports came from that build.
+For DevPocket 1.x, put a finished-build check and browser-study check in separate project roots and make the browser project `needs` the build project in `.devpocket-workspace.json`. `devpocket workspace plan` reviews dependencies without importing plugins; `devpocket workspace check --format sarif` runs the selected checks with project-relative roots and one worker limit. This orders checks; it cannot prove that manual HAR exports came from that build.

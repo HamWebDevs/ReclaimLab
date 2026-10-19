@@ -2,7 +2,7 @@
 import argparse
 from pathlib import Path
 
-from reclaimlab import har, network_study
+from reclaimlab import bundle, har, network_study
 from reclaimlab.report import create_network, create_network_study
 
 
@@ -19,6 +19,10 @@ def main():
     manifest = network_study.write_demo(output / 'study')
     study_report = output / 'network-study.html'
     create_network_study(network_study.evaluate(manifest, iterations=500, max_growth=0), study_report)
+    archive = output / 'experiment.rlb'
+    bundle.create(manifest, archive, iterations=500, max_growth=0)
+    verified_report = output / 'verified-bundle.html'
+    create_network_study(bundle.verify(archive), verified_report)
     errors, network = [], []
     with sync_playwright() as automation:
         browser = automation.chromium.launch()
@@ -75,8 +79,22 @@ def main():
             page.screenshot(path=str(output / ('network-study-' + name + '.png')), full_page=True)
         assert not errors, errors
         assert not network, network
+        page.goto(verified_report.as_uri())
+        page.wait_for_selector('#pair-rows button')
+        assert page.locator('#bundle-info').is_visible()
+        assert 'integrity verified' in page.locator('#bundle-status').inner_text()
+        assert page.locator('#bundle-digest').inner_text().endswith(bundle.verify(archive)['bundle']['sha256'])
+        assert page.locator('#pairs').inner_text() == '6 / 6'
+        page.get_by_label('Capture order', exact=True).select_option('candidate')
+        assert page.locator('#pair-rows tr').count() == 3
+        for width, name in ((1440, 'desktop'), (390, 'mobile')):
+            page.set_viewport_size({'width': width, 'height': 900})
+            assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), name
+            page.screenshot(path=str(output / ('verified-bundle-' + name + '.png')), full_page=True)
+        assert not errors, errors
+        assert not network, network
         browser.close()
-    print('Real Chromium network + paired-experiment QA passed: desktop/mobile layout, filters, audit details, stable totals, no JavaScript errors or network requests.')
+    print('Real Chromium HAR, paired-study and verified-bundle QA passed: desktop/mobile layout, filters, audit details, integrity metadata, stable totals, no JavaScript errors or network requests.')
     return 0
 
 

@@ -10,6 +10,7 @@ import random
 import re
 from statistics import fmean
 
+from .jsonio import loads
 from .analysis import quantile
 from .experiment import assess
 from .trace import exclusive, load, signature
@@ -115,7 +116,7 @@ def read_manifest(path):
         raw = stream.read(MAX_MANIFEST + 1)
     if len(raw.encode()) > MAX_MANIFEST:
         raise ValueError("Study manifest exceeds 256 KiB")
-    return validate(json.loads(raw))
+    return validate(loads(raw))
 
 
 def fingerprint(manifest):

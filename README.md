@@ -7,11 +7,24 @@
 
 **A local performance lab for laptops and web applications.**
 
+**Version 1:** stable file contracts, portable measurement bundles and five optional DevPocket plugins. [Compatibility and upgrading](docs/compatibility.md) · [Bundle format and verification](docs/bundles.md)
+
 Record a slowdown while doing your normal work, inspect saved browser networks, or compare repeated baseline/candidate HAR exports. See native scheduling/resource evidence, explore HTTP waterfalls and gate captured metric growth using whole paired runs. Share self-contained offline reports and connect the evidence to DevPocket checks.
 
 No account, background service, automatic tuning, telemetry or runtime dependencies. Capture supports **Windows and Linux**; analysis and reports also work on macOS.
 
 [Quick start](#quick-start) · [Browser network lab](docs/browser-network.md) · [Browser experiments](docs/network-studies.md) · [Laptop studies](docs/studies.md) · [Commands](docs/commands.md) · [DevPocket integration](docs/devpocket.md)
+
+## Share evidence without sharing the original HAR
+
+```bash
+reclaimlab bundle create trial/network-study.json --max-growth 0 --output experiment.rlb
+reclaimlab bundle verify experiment.rlb --output verified-experiment.html
+```
+
+One portable file retains selected measurements, paired runs, uncertainty and the growth policy. Original URLs, headers, bodies, descriptions, browser identities and absolute dates are withheld. Verification checks bounded canonical fields and checksums, then reanalyses entirely in memory; it extracts no files and executes no archived code. Stored evidence must match the fresh result.
+
+Use the read-only `reclaimlab-bundle` DevPocket plugin to check it in CI, cache it as one complete file input, or expose it to a coding assistant. Checksums establish internal consistency, not source authenticity or anonymity. [Privacy boundaries, reproducibility and CI →](docs/bundles.md)
 
 ## Check whether a web change holds up across runs
 
