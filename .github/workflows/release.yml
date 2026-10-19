@@ -78,6 +78,8 @@ jobs:
           reclaimlab demo --output release-demo.html
           reclaimlab study-demo --directory release-study --output release-study.html
           reclaimlab har-demo --output release-network.html
+          reclaimlab network-study-demo --directory release-browser-study --output release-browser-study.html
+          reclaimlab network-study release-browser-study/network-study.json --max-growth 0 --json
       - name: Prepare release notes and checksums
         if: steps.state.outputs.exists != 'true'
         run: python .github/scripts/prepare_release.py --title ReclaimLab
