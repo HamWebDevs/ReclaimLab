@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1 — 2026-10-20
+
+- Clarify local-first performance evidence and improve discoverable package metadata for HAR and offline-report use cases.
+- Update the README's DevPocket integration examples to list all six currently shipped read-only plugins instead of the older three-plugin wording.
+- Add a repository-description/topic checklist and cross-project discovery guidance; preserve all 1.1 file formats, metrics and CLI behaviour.
+
 ## 1.1.0 — 2026-10-19
 
 - Add `har-compare` for descriptive before/after saved-browser captures: request/error counts, complete response-body sizes and response-wait p95, with unknown dependent deltas retained.

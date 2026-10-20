@@ -5,7 +5,7 @@
 [![MIT](https://img.shields.io/badge/licence-MIT-8ce8be)](LICENSE)
 ![Runtime dependencies: zero](https://img.shields.io/badge/runtime_dependencies-zero-8ce8be)
 
-**A local performance lab for laptops and web applications.**
+**Find out what slowed down your laptop or web application — with local evidence, not guesswork.** Record a repeatable laptop trace, inspect HAR files, compare before/after browser captures, and share private-by-default offline reports.
 
 **Version 1:** stable file contracts, portable measurement bundles and six optional DevPocket plugins. [Compatibility and upgrading](docs/compatibility.md) · [Bundle format and verification](docs/bundles.md)
 
@@ -13,7 +13,7 @@ Record a slowdown while doing your normal work, inspect saved browser networks, 
 
 No account, background service, automatic tuning, telemetry or runtime dependencies. Capture supports **Windows and Linux**; analysis and reports also work on macOS.
 
-[Quick start](#quick-start) · [Browser network lab](docs/browser-network.md) · [Browser experiments](docs/network-studies.md) · [Laptop studies](docs/studies.md) · [Commands](docs/commands.md) · [DevPocket integration](docs/devpocket.md)
+[Repository positioning and discovery](docs/discoverability.md) · [Latest releases](https://github.com/HamWebDevs/ReclaimLab/releases) · [Quick start](#quick-start) · [Browser network lab](docs/browser-network.md) · [Browser experiments](docs/network-studies.md) · [Laptop studies](docs/studies.md) · [Commands](docs/commands.md) · [DevPocket integration](docs/devpocket.md)
 
 ## See what changed between browser captures
 
@@ -154,19 +154,22 @@ Linux captures `/proc` CPU/memory, available PSI, swap and block-device counters
 
 ## Connect it to DevPocket
 
-ReclaimLab includes three optional **DevPocket API v1 plugins**. Install both projects in the same environment, then:
+ReclaimLab includes six optional **DevPocket API v1 plugins**. Install both projects in the same environment, then:
 
 ```bash
 devpocket plugins enable reclaimlab
 devpocket plugins enable reclaimlab-study
 devpocket plugins enable reclaimlab-har
+devpocket plugins enable reclaimlab-network-study
+devpocket plugins enable reclaimlab-bundle
+devpocket plugins enable reclaimlab-har-compare
 devpocket run reclaimlab --input '{"trace":"before.jsonl"}' --format sarif
 devpocket run reclaimlab-study --input '{"manifest":"trial/study.json"}' --format json
 devpocket run reclaimlab-har --input '{"capture":"artifacts/page.har","max_errors":0}' --format sarif
 devpocket serve --root /absolute/path/to/project --plugin reclaimlab --plugin reclaimlab-study
 ```
 
-The plugins read saved traces, studies and HAR captures; they do not start recording or tune the machine. Findings work with DevPocket checks, baselines, SARIF and MCP. All three support DevPocket 0.4+ result caching when every input is declared. Combine HAR gates with DevPocket 0.5's AssetGuard to review built artifacts and captured network activity together. [Integration guide](docs/devpocket.md).
+The six plugins read saved traces, studies, HAR captures or portable bundles; they do not start recording or tune the machine. Findings work with DevPocket checks, baselines, SARIF and MCP. Supported read-only checks can use DevPocket's opt-in result caching when every input is declared. Combine HAR gates with DevPocket 0.5's AssetGuard to review built artifacts and captured network activity together. [Integration guide](docs/devpocket.md).
 
 ## Development
 

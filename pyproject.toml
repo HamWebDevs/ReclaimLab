@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reclaimlab-toolkit"
-version = "1.1.0"
+version = "1.1.1"
 description = "Local performance evidence for laptop traces, browser networks and repeatable experiments."
 readme = "README.md"
+keywords = ["performance-analysis", "har", "web-performance", "offline-reports", "performance-testing", "developer-tools"]
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "HamWebDevs"}]
