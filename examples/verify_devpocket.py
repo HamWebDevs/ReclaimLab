@@ -29,15 +29,23 @@ def main():
         assert any(x['name']=='reclaimlab-network-study' and not x['enabled'] for x in inventory)
         assert any(x['name']=='reclaimlab-bundle' and not x['enabled'] for x in inventory)
         assert any(x['name']=='reclaimlab-har-compare' and not x['enabled'] for x in inventory)
+        assert any(x['name']=='reclaimlab-har-assets' and not x['enabled'] for x in inventory)
         command(['plugins','enable','reclaimlab'],root)
         command(['plugins','enable','reclaimlab-study'],root)
         command(['plugins','enable','reclaimlab-har'],root)
         command(['plugins','enable','reclaimlab-network-study'],root)
         command(['plugins','enable','reclaimlab-bundle'],root)
         command(['plugins','enable','reclaimlab-har-compare'],root)
+        command(['plugins','enable','reclaimlab-har-assets'],root)
         capture = har.synthetic()
         (root / 'demo.har').write_text(json.dumps(capture))
         (root / 'after.har').write_text(json.dumps(capture))
+        asset_input = {'capture': 'demo.har', 'max_asset_kib': 512, 'max_duration_ms': 1000}
+        assets = json.loads(command(['run', 'reclaimlab-har-assets', '--input', json.dumps(asset_input), '--format', 'json'], root))
+        assert assets['data']['summary']['requests'] == 3
+        assert assets['data']['summary']['max_body_bytes'] == 280000
+        assert assets['data']['verdict'] == 'within budgets'
+        assert 'example.invalid' not in json.dumps(assets)
         compare_input = {'before': 'demo.har', 'after': 'after.har'}
         comparison = json.loads(command(['run', 'reclaimlab-har-compare', '--input', json.dumps(compare_input), '--format', 'json'], root))
         assert comparison['data']['delta']['body_bytes']['change'] == 0
@@ -78,9 +86,11 @@ def main():
         config['checks']['bundle'] = {'tool': 'reclaimlab-bundle', 'input': bundle_input, 'cache': {'inputs': ['experiment.rlb']}}
         config['plugins'].append('reclaimlab-har-compare')
         config['checks']['comparison'] = {'tool': 'reclaimlab-har-compare', 'input': compare_input, 'cache': {'inputs': ['demo.har', 'after.har']}}
+        config['plugins'].append('reclaimlab-har-assets')
+        config['checks']['assets'] = {'tool': 'reclaimlab-har-assets', 'input': asset_input, 'cache': {'inputs': ['demo.har']}}
         (root / '.devpocket.json').write_text(json.dumps(config))
         preflight = json.loads(command(['config', 'validate', '--format', 'json'], root))
-        assert preflight['data']['plugin_inputs_unverified'] == 6
+        assert preflight['data']['plugin_inputs_unverified'] == 7
         # Reuse assertions are serialized; parallel execution is exercised below.
         # Storage contention may safely bypass an optional cache on Windows.
         first = json.loads(command(['check', '--jobs', '1', '--format', 'json'], root, expected=1))
@@ -141,7 +151,8 @@ def main():
         paired_capture.write_text(saved)
         messages=[{'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':'2025-11-25','capabilities':{},'clientInfo':{'name':'reclaimlab-test','version':'1'}}},{'jsonrpc':'2.0','method':'notifications/initialized'},{'jsonrpc':'2.0','id':2,'method':'tools/call','params':{'name':'reclaimlab','arguments':{'trace':'demo.jsonl'}}},{'jsonrpc':'2.0','id':3,'method':'tools/call','params':{'name':'reclaimlab-study','arguments':study_input}},{'jsonrpc':'2.0','id':4,'method':'tools/call','params':{'name':'reclaimlab-har','arguments':har_input}},{'jsonrpc':'2.0','id':5,'method':'tools/call','params':{'name':'reclaimlab-network-study','arguments':paired_input}},{'jsonrpc':'2.0','id':6,'method':'tools/call','params':{'name':'reclaimlab-bundle','arguments':bundle_input}}]
         messages.append({'jsonrpc': '2.0', 'id': 7, 'method': 'tools/call', 'params': {'name': 'reclaimlab-har-compare', 'arguments': compare_input}})
-        result=command(['serve','--root',root,'--plugin','reclaimlab','--plugin','reclaimlab-study','--plugin','reclaimlab-har','--plugin','reclaimlab-network-study','--plugin','reclaimlab-bundle','--plugin','reclaimlab-har-compare'],root,input=''.join(json.dumps(x)+'\n' for x in messages))
+        messages.append({'jsonrpc': '2.0', 'id': 8, 'method': 'tools/call', 'params': {'name': 'reclaimlab-har-assets', 'arguments': asset_input}})
+        result=command(['serve','--root',root,'--plugin','reclaimlab','--plugin','reclaimlab-study','--plugin','reclaimlab-har','--plugin','reclaimlab-network-study','--plugin','reclaimlab-bundle','--plugin','reclaimlab-har-compare','--plugin','reclaimlab-har-assets'],root,input=''.join(json.dumps(x)+'\n' for x in messages))
         replies={x['id']:x for x in map(json.loads,result.splitlines())}
         assert not replies[2]['result']['isError']
         assert len(replies[2]['result']['structuredContent']['findings'])>=3
@@ -155,7 +166,17 @@ def main():
         assert replies[6]['result']['structuredContent']['data']['bundle']['integrity'] == 'verified'
         assert not replies[7]['result']['isError']
         assert replies[7]['result']['structuredContent']['data']['delta']['body_bytes']['change'] == 100
-        print('DevPocket six-plugin discovery, AssetGuard, HAR comparison, paired gates, cached checks, both-input invalidation, workspace plans/SARIF and MCP integration passed.')
+        assert not replies[8]['result']['isError']
+        assert replies[8]['result']['structuredContent']['data']['summary']['max_body_bytes'] == 280000
+        # Asset gates are operational outcomes under baseline/severity suppression.
+        failed_asset_input = {**asset_input, 'max_asset_kib': 1}
+        failed_assets = command(['run', 'reclaimlab-har-assets', '--input', json.dumps(failed_asset_input), '--format', 'json', '--fail-on', 'none'], root, expected=1)
+        (root / 'failed-assets.json').write_text(failed_assets)
+        command(['baseline', '--from', 'failed-assets.json', '--output', 'asset-baseline.json'], root)
+        command(['run', 'reclaimlab-har-assets', '--input', json.dumps(failed_asset_input), '--baseline', 'asset-baseline.json', '--fail-on', 'none'], root, expected=1)
+        asset_sarif = json.loads(command(['run', 'reclaimlab-har-assets', '--input', json.dumps(failed_asset_input), '--format', 'sarif'], root, expected=1))
+        assert any(row['ruleId'].endswith('har-assets-budget-asset-kib') for row in asset_sarif['runs'][0]['results'])
+        print('DevPocket seven-plugin discovery, per-asset budgets, AssetGuard, HAR comparison, paired gates, cached checks, invalidation, workspace plans/SARIF and MCP integration passed.')
     return 0
 
 if __name__=='__main__':raise SystemExit(main())

@@ -7,13 +7,22 @@
 
 **Find out what slowed down your laptop or web application — with local evidence, not guesswork.** Record a repeatable laptop trace, inspect HAR files, compare before/after browser captures, and share private-by-default offline reports.
 
-**Version 1:** stable file contracts, portable measurement bundles and six optional DevPocket plugins. [Compatibility and upgrading](docs/compatibility.md) · [Bundle format and verification](docs/bundles.md)
+**Version 1:** stable file contracts, portable measurement bundles and seven optional DevPocket plugins. [Compatibility and upgrading](docs/compatibility.md) · [Bundle format and verification](docs/bundles.md)
 
 Record a slowdown while doing your normal work, inspect saved browser networks, or compare repeated baseline/candidate HAR exports. See native scheduling/resource evidence, explore HTTP waterfalls and gate captured metric growth using whole paired runs. Share self-contained offline reports and connect the evidence to DevPocket checks.
 
 No account, background service, automatic tuning, telemetry or runtime dependencies. Capture supports **Windows and Linux**; analysis and reports also work on macOS.
 
 [Repository positioning and discovery](docs/discoverability.md) · [Latest releases](https://github.com/HamWebDevs/ReclaimLab/releases) · [Quick start](#quick-start) · [Browser network lab](docs/browser-network.md) · [Browser experiments](docs/network-studies.md) · [Laptop studies](docs/studies.md) · [Commands](docs/commands.md) · [DevPocket integration](docs/devpocket.md)
+
+## Catch individual oversized or slow captured assets
+
+```bash
+reclaimlab har-assets page.har --max-asset-kib 256 --max-duration-ms 1000 --json
+reclaimlab har-assets-demo --max-asset-kib 512 --max-duration-ms 1000
+```
+
+Rank captured scripts, styles, images, fonts and media by body size or exported request duration. Apply per-request budgets to every selected record, even those omitted from compact detail lists. Missing measurements, request errors and empty selections cannot certify a budget; aliases withhold private URLs. The seventh plugin, `reclaimlab-har-assets`, brings the same evidence to DevPocket checks, caching, SARIF and MCP. [Scope, measurements and budget rules →](docs/har-assets.md)
 
 ## See what changed between browser captures
 
@@ -154,7 +163,7 @@ Linux captures `/proc` CPU/memory, available PSI, swap and block-device counters
 
 ## Connect it to DevPocket
 
-ReclaimLab includes six optional **DevPocket API v1 plugins**. Install both projects in the same environment, then:
+ReclaimLab includes seven optional **DevPocket API v1 plugins**. Install both projects in the same environment, then:
 
 ```bash
 devpocket plugins enable reclaimlab
@@ -163,13 +172,14 @@ devpocket plugins enable reclaimlab-har
 devpocket plugins enable reclaimlab-network-study
 devpocket plugins enable reclaimlab-bundle
 devpocket plugins enable reclaimlab-har-compare
+devpocket plugins enable reclaimlab-har-assets
 devpocket run reclaimlab --input '{"trace":"before.jsonl"}' --format sarif
 devpocket run reclaimlab-study --input '{"manifest":"trial/study.json"}' --format json
 devpocket run reclaimlab-har --input '{"capture":"artifacts/page.har","max_errors":0}' --format sarif
 devpocket serve --root /absolute/path/to/project --plugin reclaimlab --plugin reclaimlab-study
 ```
 
-The six plugins read saved traces, studies, HAR captures or portable bundles; they do not start recording or tune the machine. Findings work with DevPocket checks, baselines, SARIF and MCP. Supported read-only checks can use DevPocket's opt-in result caching when every input is declared. Combine HAR gates with DevPocket 0.5's AssetGuard to review built artifacts and captured network activity together. [Integration guide](docs/devpocket.md).
+The seven plugins read saved traces, studies, HAR captures or portable bundles; they do not start recording or tune the machine. Findings work with DevPocket checks, baselines, SARIF and MCP. Supported read-only checks can use DevPocket's opt-in result caching when every input is declared. Combine HAR gates with DevPocket 0.5's AssetGuard to review built artifacts and captured network activity together. [Integration guide](docs/devpocket.md).
 
 ## Development
 

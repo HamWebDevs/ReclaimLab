@@ -25,6 +25,7 @@ jobs:
       - run: python -m pip install .
       - run: python -m unittest discover -s tests -v
       - run: reclaimlab --help
+      - run: reclaimlab har-assets-demo --max-asset-kib 512 --max-duration-ms 1000 --json
       - run: reclaimlab doctor
         if: runner.os != 'macOS'
       - run: reclaimlab demo --output reclaimlab-demo.html

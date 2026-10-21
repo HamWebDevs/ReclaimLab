@@ -1,5 +1,9 @@
 # Commands
 
+## Individual captured assets (1.2+)
+
+`reclaimlab har-assets page.har --max-asset-kib 256 --max-duration-ms 1000 --json` ranks selected captured assets and gates each request. Repeat `--kind` to choose MIME-derived kinds; `--top 1..50` bounds details while all selected records affect budgets. `har-assets-demo` uses labelled synthetic evidence. [Measurements, privacy, coverage and plugin](har-assets.md).
+
 ## Browser capture comparison (1.1+)
 
 `har-compare BEFORE AFTER --output changes.html --json` compares saved HTTP route groups with private aliases. `--before-page`/`--after-page` select explicit pages and `--include-paths` opts into origin/path labels. `har-compare-demo --output demo.html` creates a labelled offline example. Growth alone returns 0; this is descriptive. See [matching, measurements, privacy and limits](har-comparison.md).

@@ -131,3 +131,26 @@ def build_har_compare_tool():
     options = {'cache_version': 'har-compare-v1'} if 'cache_version' in ToolSpec.__dataclass_fields__ else {}
     properties = {'before': {'type': 'string', 'maxLength': 4096}, 'after': {'type': 'string', 'maxLength': 4096}, 'before_page': {'type': 'integer', 'minimum': 1, 'maximum': 100}, 'after_page': {'type': 'integer', 'minimum': 1, 'maximum': 100}}
     return ToolSpec(name='reclaimlab-har-compare', description='Compare two saved HAR samples with private route aliases and explicit unknown deltas', input_schema={'type': 'object', 'properties': properties, 'required': ['before', 'after'], 'additionalProperties': False}, run=inspect_har_compare, read_only=True, **options)
+
+
+def inspect_har_assets(context, params):
+    from devpocket.sdk import Finding, ToolResult
+    from . import har_assets
+    requested = context.root / params['capture']
+    if requested.is_symlink() or requested.absolute().resolve() != requested.absolute():
+        raise ValueError('Asset HAR input cannot use symlinks or redirected directories')
+    path = context.resolve(params['capture'])
+    report = har_assets.load(path, **{key: params[key] for key in ('page', 'kinds', 'max_asset_kib', 'max_duration_ms', 'top') if key in params})
+    relative = path.relative_to(context.root).as_posix()
+    findings = [Finding(item['rule'], item['message'], severity=item['severity'], path=relative) for item in report['findings']]
+    if report['synthetic']:
+        findings.append(Finding('har-assets-synthetic', 'Synthetic demonstration data', severity='note', path=relative))
+    return ToolResult('Captured per-request asset evidence: ' + report['verdict'], findings, report, exit_code=report['exit_code'])
+
+
+def build_har_assets_tool():
+    from devpocket.sdk import ToolSpec
+    from .har_assets import KINDS
+    options = {'cache_version': 'har-assets-v1'} if 'cache_version' in ToolSpec.__dataclass_fields__ else {}
+    properties = {'capture': {'type': 'string', 'minLength': 1, 'maxLength': 4096}, 'page': {'type': 'integer', 'minimum': 1, 'maximum': 100}, 'kinds': {'type': 'array', 'items': {'type': 'string', 'enum': list(KINDS)}, 'minItems': 1, 'maxItems': len(KINDS)}, 'top': {'type': 'integer', 'minimum': 1, 'maximum': 50}, 'max_asset_kib': {'type': 'number', 'minimum': 0, 'maximum': 1e12}, 'max_duration_ms': {'type': 'number', 'minimum': 0, 'maximum': 1e12}}
+    return ToolSpec(name='reclaimlab-har-assets', description='Rank selected captured assets privately and gate individual body-size/duration measurements with explicit coverage', input_schema={'type': 'object', 'properties': properties, 'required': ['capture'], 'additionalProperties': False}, run=inspect_har_assets, read_only=True, **options)
