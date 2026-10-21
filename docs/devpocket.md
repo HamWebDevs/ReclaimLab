@@ -1,10 +1,12 @@
 # DevPocket integration
 
-ReclaimLab 1.1 adds `reclaimlab-har-compare` for descriptive differences between two saved captures. [Comparison, privacy and complete-input caching](har-comparison.md). ReclaimLab 1.0 added `reclaimlab-bundle`. It verifies and reanalyses a portable `.rlb` artifact entirely in memory and supports complete-input caching with just that file. [Configuration and CI example](bundles.md#devpocket-and-ci). Existing trace/study/HAR/network-study names remain unchanged. Installed integration checks use DevPocket 1.x and verify all six plugins, preflight, cached invalidation, workspace reports and MCP.
+ReclaimLab 1.2 adds the seventh read-only plugin, `reclaimlab-har-assets`, for per-request asset-size/duration rankings and coverage-aware budgets. [Measurement scope, policies and complete-input caching](har-assets.md).
+
+ReclaimLab 1.1 adds `reclaimlab-har-compare` for descriptive differences between two saved captures. [Comparison, privacy and complete-input caching](har-comparison.md). ReclaimLab 1.0 added `reclaimlab-bundle`. It verifies and reanalyses a portable `.rlb` artifact entirely in memory and supports complete-input caching with just that file. [Configuration and CI example](bundles.md#devpocket-and-ci). Existing trace/study/HAR/network-study names remain unchanged. Installed integration checks use DevPocket 1.x and verify all seven plugins, preflight, cached invalidation, workspace reports and MCP.
 
 [Back to ReclaimLab](../README.md)
 
-ReclaimLab publishes `reclaimlab`, `reclaimlab-study`, `reclaimlab-har`, `reclaimlab-network-study`, `reclaimlab-bundle` and `reclaimlab-har-compare` entry points in the `devpocket.tools` group. Standalone use does not import or require DevPocket. All six use API v1 and omit optional cache fields on older API v1 hosts. AssetGuard requires DevPocket 0.5+; workspace orchestration requires 0.6+; the combined verification script uses DevPocket 1.x configuration preflight.
+ReclaimLab publishes `reclaimlab`, `reclaimlab-study`, `reclaimlab-har`, `reclaimlab-network-study`, `reclaimlab-bundle`, `reclaimlab-har-compare` and `reclaimlab-har-assets` entry points in the `devpocket.tools` group. Standalone use does not import or require DevPocket. All seven use API v1 and omit optional cache fields on older API v1 hosts. AssetGuard requires DevPocket 0.5+; workspace orchestration requires 0.6+; the combined verification script uses DevPocket 1.x configuration preflight.
 
 Install both repositories in the same environment. DevPocket is not assumed to exist on PyPI:
 
@@ -18,6 +20,7 @@ devpocket plugins enable reclaimlab-har
 devpocket plugins enable reclaimlab-network-study
 devpocket plugins enable reclaimlab-bundle
 devpocket plugins enable reclaimlab-har-compare
+devpocket plugins enable reclaimlab-har-assets
 ```
 
 From the project containing a saved trace:
@@ -27,6 +30,7 @@ devpocket run reclaimlab --input '{"trace":"before.jsonl"}' --format json
 devpocket run reclaimlab --input '{"trace":"before.jsonl"}' --format sarif
 devpocket run reclaimlab-study --input '{"manifest":"trial/study.json"}' --format json
 devpocket run reclaimlab-har-compare --input '{"before":"before.har","after":"after.har"}' --format json
+devpocket run reclaimlab-har-assets --input '{"capture":"artifacts/page.har","max_asset_kib":256}' --format sarif
 devpocket run reclaimlab-har --input '{"capture":"artifacts/page.har","max_errors":0}' --format sarif
 devpocket run reclaimlab-network-study --input '{"manifest":"trial/network-study.json","max_growth":0}' --format sarif
 ```
@@ -84,7 +88,7 @@ The HAR plugin keeps aliases on, reads only a selected saved capture and returns
 
 Declare the capture file itself in `cache.inputs`. A changed HAR invalidates the result; budget inputs are also part of the cache key. To expose it over MCP, enable `reclaimlab-har` in the root config and add `--plugin reclaimlab-har` to `devpocket serve`.
 
-See the [browser network guide](browser-network.md) and [combined build/network configuration](../examples/web-checks.json). `python examples/verify_devpocket.py` exercises installed discovery, all six plugins, caches, content invalidation, SARIF, MCP, AssetGuard and workspace orchestration.
+See the [browser network guide](browser-network.md) and [combined build/network configuration](../examples/web-checks.json). `python examples/verify_devpocket.py` exercises installed discovery, all seven plugins, caches, content invalidation, SARIF, MCP, AssetGuard and workspace orchestration.
 
 ## Paired HAR experiment gates
 

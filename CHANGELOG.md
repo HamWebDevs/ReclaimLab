@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — 2026-10-21
+
+- Add `har-assets` and a labelled synthetic demo to rank captured assets by per-request response-body bytes and exported HTTP duration, with resource-kind filters and explicit detail limits.
+- Enforce individual asset-size/duration budgets over all selected records, retain known lower bounds and refuse passing evidence from missing measurements, timing inconsistencies, selected request errors or empty selections.
+- Preserve private aliases, discard URLs/headers/bodies, keep whole-capture/page/kind scope explicit, and distinguish known budget overages from unknown coverage.
+- Add the seventh read-only DevPocket API v1 plugin, `reclaimlab-har-assets`, with compact JSON/SARIF/MCP evidence, complete-HAR opt-in caching and unsuppressible budget outcomes.
+- Extend CLI, privacy, scope, gate, wheel and installed-plugin checks. Keep schema-1 traces/protocols, bundle format 1 and all existing report interfaces unchanged.
+
 ## 1.1.1 — 2026-10-20
 
 - Clarify local-first performance evidence and improve discoverable package metadata for HAR and offline-report use cases.

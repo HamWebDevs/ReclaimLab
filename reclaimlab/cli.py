@@ -11,7 +11,7 @@ from .experiment import compare
 from .native import collector
 from .record import record
 from .report import create, create_study, create_network, create_network_study, create_network_compare
-from . import bundle, har, study, network_study, har_compare
+from . import bundle, har, study, network_study, har_compare, har_assets
 from .trace import exclusive, load, write_row
 
 def parser():
@@ -38,6 +38,16 @@ def parser():
     r.add_argument('--output', help='Optional fresh offline HTML network report')
     r = sub.add_parser('har-demo', help='Create a clearly labelled synthetic browser-network report')
     r.add_argument('--output', required=True)
+    for action in ('har-assets', 'har-assets-demo'):
+        r = sub.add_parser(action, help='Rank captured assets and gate individual body-size/duration measurements' if action == 'har-assets' else 'Show clearly labelled synthetic per-asset evidence')
+        if action == 'har-assets':
+            r.add_argument('capture', help='Saved HAR 1.2; never uploaded or replayed')
+        r.add_argument('--page', type=int)
+        r.add_argument('--kind', action='append', choices=har_assets.KINDS, help='Select a MIME-derived resource kind; repeatable')
+        r.add_argument('--max-asset-kib', type=float, help='Maximum captured body bytes per selected request, in KiB')
+        r.add_argument('--max-duration-ms', type=float, help='Maximum consistent exported duration per selected request')
+        r.add_argument('--top', type=int, default=20, help='Details per ranking (1..50); budgets always cover every selected request')
+        r.add_argument('--json', action='store_true')
     r = sub.add_parser('har-compare', help='Compare two saved HAR samples descriptively, with private route matching')
     r.add_argument('before')
     r.add_argument('after')
@@ -185,6 +195,20 @@ def main(argv=None):
             s = source.snapshot()
             print(json.dumps({'platform': platform.system(), 'backend': source.name, 'cpu_counters': bool(s.get('cpu')), 'memory_available': s.get('memory_available') is not None, 'psi': bool(s.get('psi', {}).get('memory')), 'disk_counters': bool(s.get('disks')), 'thermal': s.get('temperature_c') is not None, 'power': s['power'], 'process_names_default': False, **source.description()}, indent=2))
             return 0
+        if args.action in {'har-assets', 'har-assets-demo'}:
+            options = {'page': args.page, 'kinds': args.kind, 'max_asset_kib': args.max_asset_kib, 'max_duration_ms': args.max_duration_ms, 'top': args.top}
+            result = har_assets.analyse(har.synthetic(), **options) if args.action == 'har-assets-demo' else har_assets.load(args.capture, **options)
+            if args.json:
+                print(json.dumps(result, indent=2, allow_nan=False))
+            else:
+                print('Synthetic asset demonstration' if result['synthetic'] else 'Captured HTTP asset evidence')
+                print(f"{result['summary']['requests']} selected request records; budgets: {result['verdict']}")
+                for row in result['largest_assets']:
+                    print(f"{row['label']} ({row['kind']}): {row['body_bytes']} captured body bytes; {row['duration_ms']} ms exported duration")
+                for finding in result['findings']:
+                    print(f"[{finding['severity']}] {finding['rule']}: {finding['message']}")
+                print(result['interpretation'])
+            return result['exit_code']
         if args.action in {'har-compare', 'har-compare-demo'}:
             result = har_compare.synthetic() if args.action == 'har-compare-demo' else har_compare.load(args.before, args.after, before_page=args.before_page, after_page=args.after_page, include_paths=args.include_paths)
             if args.output:
