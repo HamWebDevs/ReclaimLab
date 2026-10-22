@@ -5,7 +5,7 @@
 ```bash
 reclaimlab har-assets page.har --max-asset-kib 256 --max-duration-ms 1000 --json
 reclaimlab har-assets page.har --kind script --kind style --top 10
-reclaimlab har-assets-demo --max-asset-kib 512 --max-duration-ms 1000
+reclaimlab har-assets-demo --max-asset-kib 512 --max-duration-ms 1000 --output assets.html
 ```
 
 `har-assets` reads a saved HAR 1.2 and returns per-request size/duration rankings, coverage, resource-kind summaries and optional budgets. It makes no network requests and does not execute or replay resources. The demo is synthetic and labelled as such.
@@ -31,7 +31,7 @@ These are individual captured HTTP records, including repeated requests. They ar
 
 Only the existing HAR allowlisted measurements enter results. Request/origin aliases remain the default and this interface has no URL-label opt-in. Headers, cookies, bodies, query/userinfo/path URLs, absolute timestamps, initiators and page descriptions are discarded. Alias numbers identify records only within this capture.
 
-The existing 32 MiB HAR, 5,000-entry, 100-page and 256-origin limits apply. Explicit regular-file inputs reject symlinks and redirected directories. Work on stable saved exports. Compact lists contain at most 50 entries each and every omission is counted. No HTML interface is added or changed by this command.
+The existing 32 MiB HAR, 5,000-entry, 100-page and 256-origin limits apply. Explicit regular-file inputs reject symlinks and redirected directories. Work on stable saved exports. Compact lists contain at most 50 entries each and every omission is counted. Use `--output assets.html` for a fresh self-contained HTML report. Existing files are refused. The report preserves the command's budget outcome and renders even when a requested budget fails. Its fixed scope, coverage, resource-kind totals and budget table include every selected request. Ranking, resource-kind and alias-search controls filter only the bounded retained detail lists; omissions remain explicit. HTTP errors and inconsistent/missing timing remain visible. Labels enter inert JSON and are rendered as text, never executable HTML. No remote resources are loaded. Print from the browser for PDF; the detail list reflects current filters, while totals remain fixed.
 
 ## DevPocket
 

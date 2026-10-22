@@ -11,6 +11,7 @@ import unittest
 
 from reclaimlab import har, har_assets
 from reclaimlab.cli import main
+from reclaimlab.report import create_network_assets
 from test_har import archive, entry
 
 
@@ -145,6 +146,27 @@ class AssetTests(unittest.TestCase):
             code = main(['har-assets-demo', '--max-asset-kib', '512', '--max-duration-ms', '1000', '--json'])
         self.assertEqual(code, 0)
         self.assertTrue(json.loads(output.getvalue())['synthetic'])
+
+    def test_offline_report_is_exclusive_inert_and_preserves_budget_outcome(self):
+        report = har_assets.analyse(har.synthetic(), max_asset_kib=1)
+        report['largest_assets'][0]['label'] = '</script><img src=x onerror=alert(1)>'
+        path = self.root / 'assets.html'
+        create_network_assets(report, path)
+        text = path.read_text(encoding='utf-8')
+        self.assertNotIn('</script><img', text)
+        self.assertIn('\\u003c/script\\u003e', text)
+        self.assertIn('Content-Security-Policy', text)
+        self.assertNotIn('innerHTML', text)
+        self.assertNotIn('https://', text)
+        with self.assertRaises(FileExistsError):
+            create_network_assets(report, path)
+        output = io.StringIO()
+        target = self.root / 'cli-assets.html'
+        with contextlib.redirect_stdout(output):
+            code = main(['har-assets-demo', '--max-asset-kib', '1', '--output', str(target), '--json'])
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(output.getvalue())['verdict'], 'budget exceeded')
+        self.assertTrue(target.is_file())
 
     @unittest.skipUnless(os.name == 'posix', 'symlinks')
     def test_symlink_files_and_directories_refused(self):

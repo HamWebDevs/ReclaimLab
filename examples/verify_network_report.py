@@ -2,8 +2,8 @@
 import argparse
 from pathlib import Path
 
-from reclaimlab import bundle, har, network_study, har_compare
-from reclaimlab.report import create_network, create_network_study, create_network_compare
+from reclaimlab import bundle, har, network_study, har_compare, har_assets
+from reclaimlab.report import create_network, create_network_study, create_network_compare, create_network_assets
 
 
 def main():
@@ -18,6 +18,18 @@ def main():
     create_network(har.analyse(har.synthetic(), include_paths=True), report)
     comparison = output / 'network-comparison.html'
     create_network_compare(har_compare.synthetic(), comparison)
+    assets_report = output / 'network-assets.html'
+    assets = har_assets.analyse(har.synthetic(), max_asset_kib=200, max_duration_ms=1000, top=2)
+    create_network_assets(assets, assets_report)
+    unknown_report = output / 'network-assets-unknown.html'
+    incomplete = har.synthetic()
+    for entry in incomplete['log']['entries']:
+        entry['response']['bodySize'] = -1
+    create_network_assets(har_assets.analyse(incomplete, max_asset_kib=1000), unknown_report)
+    injected_report = output / 'network-assets-text.html'
+    injected = har_assets.analyse(har.synthetic())
+    injected['largest_assets'][0]['label'] = '</script><img src=https://invalid.invalid/ onerror=alert(1)>'
+    create_network_assets(injected, injected_report)
     manifest = network_study.write_demo(output / 'study')
     study_report = output / 'network-study.html'
     create_network_study(network_study.evaluate(manifest, iterations=500, max_growth=0), study_report)
@@ -114,6 +126,40 @@ def main():
             page.set_viewport_size({'width': width, 'height': 900})
             assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), name
             page.screenshot(path=str(output / ('network-comparison-' + name + '.png')), full_page=True)
+        assert not errors, errors
+        assert not network, network
+        page.goto(assets_report.as_uri())
+        assert page.locator('#selected').inner_text() == '3'
+        assert page.locator('#verdict').inner_text() == 'budget exceeded'
+        assert page.locator('#asset-rows tr').count() == 2
+        assert page.locator('#budget-rows .fail').count() == 1
+        assert page.locator('#budget-rows .pass').count() == 1
+        assert '1 selected request records omitted' in page.locator('#detail-scope').inner_text()
+        assert 'undefined' not in page.locator('#scope').inner_text()
+        page.get_by_label('Resource kind', exact=True).select_option('font')
+        assert 'No details match' in page.locator('#asset-rows').inner_text()
+        assert page.locator('#selected').inner_text() == '3'
+        page.get_by_role('button', name='Reset filters', exact=True).click()
+        assert page.locator('#asset-rows tr').count() == 2
+        page.get_by_label('Ranking', exact=True).select_option('slowest')
+        assert page.locator('#asset-rows tr').count() == 2
+        page.get_by_label('Find an alias', exact=True).fill('no-match')
+        assert 'No details match' in page.locator('#asset-rows').inner_text()
+        page.get_by_role('button', name='Reset filters', exact=True).click()
+        for width, name in ((1440, 'desktop'), (390, 'mobile')):
+            page.set_viewport_size({'width': width, 'height': 900})
+            assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), name
+            page.screenshot(path=str(output / ('network-assets-' + name + '.png')), full_page=True)
+        page.emulate_media(media='print')
+        page.pdf(path=str(output / 'network-assets-print.pdf'), format='A4', print_background=True)
+        page.emulate_media(media='screen')
+        page.goto(unknown_report.as_uri())
+        assert page.locator('#verdict').inner_text() == 'insufficient data'
+        assert page.locator('#budget-rows .unknown').count() == 1
+        assert 'Unknown' in page.locator('#largest').inner_text()
+        page.goto(injected_report.as_uri())
+        assert page.locator('#asset-rows img').count() == 0
+        assert '</script><img' in page.locator('#asset-rows').inner_text()
         assert not errors, errors
         assert not network, network
         browser.close()

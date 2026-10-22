@@ -18,7 +18,7 @@ No account, background service, automatic tuning, telemetry or runtime dependenc
 ## Catch individual oversized or slow captured assets
 
 ```bash
-reclaimlab har-assets page.har --max-asset-kib 256 --max-duration-ms 1000 --json
+reclaimlab har-assets page.har --max-asset-kib 256 --max-duration-ms 1000 --json --output assets.html
 reclaimlab har-assets-demo --max-asset-kib 512 --max-duration-ms 1000
 ```
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reclaimlab-toolkit"
-version = "1.2.0"
+version = "1.3.0"
 description = "Local performance evidence for laptop traces, browser networks and repeatable experiments."
 readme = "README.md"
 keywords = ["performance-analysis", "har", "web-performance", "offline-reports", "performance-testing", "developer-tools"]
@@ -33,4 +33,4 @@ reclaimlab-har-assets = "reclaimlab.integration:build_har_assets_tool"
 include = ["reclaimlab*"]
 
 [tool.setuptools.package-data]
-reclaimlab = ["report_template.html", "study_template.html", "network_template.html", "network_study_template.html", "network_compare_template.html"]
+reclaimlab = ["report_template.html", "study_template.html", "network_template.html", "network_study_template.html", "network_compare_template.html", "network_assets_template.html"]

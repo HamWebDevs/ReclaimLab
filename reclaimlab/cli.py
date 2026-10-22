@@ -10,7 +10,7 @@ from .demo import synthetic
 from .experiment import compare
 from .native import collector
 from .record import record
-from .report import create, create_study, create_network, create_network_study, create_network_compare
+from .report import create, create_study, create_network, create_network_study, create_network_compare, create_network_assets
 from . import bundle, har, study, network_study, har_compare, har_assets
 from .trace import exclusive, load, write_row
 
@@ -47,6 +47,7 @@ def parser():
         r.add_argument('--max-asset-kib', type=float, help='Maximum captured body bytes per selected request, in KiB')
         r.add_argument('--max-duration-ms', type=float, help='Maximum consistent exported duration per selected request')
         r.add_argument('--top', type=int, default=20, help='Details per ranking (1..50); budgets always cover every selected request')
+        r.add_argument('--output', help='Optional fresh offline HTML asset report')
         r.add_argument('--json', action='store_true')
     r = sub.add_parser('har-compare', help='Compare two saved HAR samples descriptively, with private route matching')
     r.add_argument('before')
@@ -198,6 +199,8 @@ def main(argv=None):
         if args.action in {'har-assets', 'har-assets-demo'}:
             options = {'page': args.page, 'kinds': args.kind, 'max_asset_kib': args.max_asset_kib, 'max_duration_ms': args.max_duration_ms, 'top': args.top}
             result = har_assets.analyse(har.synthetic(), **options) if args.action == 'har-assets-demo' else har_assets.load(args.capture, **options)
+            if args.output:
+                create_network_assets(result, args.output)
             if args.json:
                 print(json.dumps(result, indent=2, allow_nan=False))
             else:
