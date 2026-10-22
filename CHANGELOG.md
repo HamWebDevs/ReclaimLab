@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 — 2026-10-22
+
+- Add a responsive offline HTML interface for captured-asset evidence through `har-assets --output` and the synthetic demo.
+- Show scope, body/duration coverage, known maxima, certified budget measurements, resource-kind summaries and explicit ranking omissions.
+- Add bounded largest/slowest lists, resource-kind filters, alias search, reset controls and print layout without changing fixed totals or gates.
+- Keep private aliases, inert JSON/text-only rendering, restrictive content policy, exclusive writes and zero external resources. Exporting a failed budget still returns its failing status.
+- Verify installed-wheel report package data and extend real-browser desktop/mobile, filtering, privacy and no-network QA.
+
 ## 1.2.0 — 2026-10-21
 
 - Add `har-assets` and a labelled synthetic demo to rank captured assets by per-request response-body bytes and exported HTTP duration, with resource-kind filters and explicit detail limits.

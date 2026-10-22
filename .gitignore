@@ -12,5 +12,6 @@ dist/
 !reclaimlab/network_template.html
 !reclaimlab/network_study_template.html
 !reclaimlab/network_compare_template.html
+!reclaimlab/network_assets_template.html
 network-preview/
 .integration-host/

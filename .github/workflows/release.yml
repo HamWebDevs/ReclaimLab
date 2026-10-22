@@ -79,7 +79,7 @@ jobs:
           python -m pip install --no-deps dist/*.whl
           cd "$RUNNER_TEMP"
           reclaimlab --version
-          reclaimlab har-assets-demo --max-asset-kib 512 --max-duration-ms 1000 --json
+          reclaimlab har-assets-demo --max-asset-kib 512 --max-duration-ms 1000 --output release-assets.html --json
           reclaimlab demo --output release-demo.html
           reclaimlab study-demo --directory release-study --output release-study.html
           reclaimlab har-demo --output release-network.html

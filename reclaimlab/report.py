@@ -50,3 +50,7 @@ def create_network_study(result, output):
 
 def create_network_compare(result, output):
     return write_document(result, 'Before / after HTTP captures', output, 'network_compare_template.html')
+
+
+def create_network_assets(result, output):
+    return write_document(result, 'Captured asset evidence', output, 'network_assets_template.html')
